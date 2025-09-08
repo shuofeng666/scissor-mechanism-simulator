@@ -1,4 +1,4 @@
-// 极简线稿版剪刀机构
+// 极简线稿版剪刀机构（支持 free 曲线 & 编号）
 class ImprovedScissorMechanism {
   constructor(){
     this.segments   = 4;
@@ -26,9 +26,11 @@ class ImprovedScissorMechanism {
 
   generateBaseCurve(){
     switch(this.curveType){
+      case 'free':
+        return (Array.isArray(window.freeCurve) && window.freeCurve.length>=2)
+          ? window.freeCurve.slice()
+          : CurveGenerator.generateArc(this.curveLength, this.curvature);
       case 'sine':   return CurveGenerator.generateSine(this.curveLength, this.curvature);
-      case 'spiral': return CurveGenerator.generateSpiral(this.curveLength, this.curvature);
-      case 'bezier': return CurveGenerator.generateBezier(this.curveLength, this.curvature);
       case 'arc':
       default:       return CurveGenerator.generateArc(this.curveLength, this.curvature);
     }
@@ -120,13 +122,9 @@ class ImprovedScissorMechanism {
   /* ===== 绘制（极简线稿） ===== */
   draw(){
     push();
-    // 基准曲线
     if(window.showCurve) this.drawBaseCurve();
-    // 轨迹
     if(window.showTrail) this.drawTrail();
-    // 连杆
     this.drawLinks();
-    // 关节/铰链
     if(window.showJoints) this.drawJoints();
     if(window.showPivots) this.drawPivots();
     pop();
@@ -158,46 +156,43 @@ class ImprovedScissorMechanism {
     pop();
   }
 
-drawJoints(){
-  push();
-  noFill();
-  stroke(17);
-  strokeWeight(1.5);
-  for(const j of this.joints){
-    ellipse(j.x, j.y, 8, 8); // 空心小圆
-    if(window.showLabels){
-      noStroke();
-      fill(80);               // 中灰
-      textSize(10);
-      textFont('ui-monospace, SFMono-Regular, Menlo, Consolas, monospace');
-      textAlign(LEFT, BOTTOM);
-      text(j.id, j.x + 6, j.y - 6); // 圆旁边小注
+  drawJoints(){
+    push();
+    noFill();
+    stroke(17);
+    strokeWeight(1.5);
+    for(const j of this.joints){
+      ellipse(j.x, j.y, 8, 8); // 空心小圆
+      if(window.showLabels){
+        noStroke(); fill(80);
+        textSize(10);
+        textFont('ui-monospace, SFMono-Regular, Menlo, Consolas, monospace');
+        textAlign(LEFT, BOTTOM);
+        text(j.id, j.x + 6, j.y - 6);
+      }
     }
+    pop();
   }
-  pop();
-}
 
-drawPivots(){
-  push();
-  noFill();
-  stroke(17);
-  strokeWeight(1.5);
-  for(const p of this.pivots){
-    ellipse(p.x, p.y, 12, 12);
-    line(p.x-6, p.y, p.x+6, p.y);
-    line(p.x, p.y-6, p.x, p.y+6);
-    if(window.showLabels){
-      noStroke();
-      fill(80);
-      textSize(11);
-      textFont('ui-monospace, SFMono-Regular, Menlo, Consolas, monospace');
-      textAlign(LEFT, TOP);
-      text(p.id, p.x + 8, p.y + 8);
+  drawPivots(){
+    push();
+    noFill();
+    stroke(17);
+    strokeWeight(1.5);
+    for(const p of this.pivots){
+      ellipse(p.x, p.y, 12, 12);
+      line(p.x-6, p.y, p.x+6, p.y);
+      line(p.x, p.y-6, p.x, p.y+6);
+      if(window.showLabels){
+        noStroke(); fill(80);
+        textSize(11);
+        textFont('ui-monospace, SFMono-Regular, Menlo, Consolas, monospace');
+        textAlign(LEFT, TOP);
+        text(p.id, p.x + 8, p.y + 8);
+      }
     }
+    pop();
   }
-  pop();
-}
-
 
   drawTrail(){
     if(this.trailPoints.length<2) return;

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="剪刀式机构模拟器（极简线稿风）" />
+    <meta name="description" content="剪刀式机构模拟器（极简线稿 + 自由绘）" />
     <title>剪刀式机构模拟器 · 极简线稿</title>
     <link rel="stylesheet" href="styles.css" />
     <!-- p5.js -->
@@ -19,8 +19,7 @@
         <div class="curve-selector">
           <button class="curve-btn active" data-curve="arc">圆弧</button>
           <button class="curve-btn" data-curve="sine">正弦</button>
-          <button class="curve-btn" data-curve="spiral">螺旋</button>
-          <button class="curve-btn" data-curve="bezier">贝塞尔</button>
+          <button class="curve-btn" data-curve="free">自由绘</button>
         </div>
       </section>
 
@@ -65,7 +64,6 @@
         <label class="check"><input type="checkbox" id="showPivots" checked /> 显示铰链</label>
         <label class="check"><input type="checkbox" id="showTrail" /> 显示轨迹</label>
         <label class="check"><input type="checkbox" id="showLabels" checked /> 显示编号</label>
-
       </section>
 
       <div class="button-row">
@@ -85,9 +83,7 @@
         <span>完整性:</span>
         <span id="integrity"><span class="dot dot-ok"></span><span id="integrityText">良好</span></span>
       </div>
-      <div class="help">
-        滚轮缩放 · 拖拽平移 · Shift+R 重置视图 · 空格居中
-      </div>
+      <div class="help">滚轮缩放 · 拖拽平移 · Shift+R 重置视图 · 空格居中 · 自由绘：拖拽绘制</div>
     </div>
 
     <!-- 业务脚本（顺序很重要） -->

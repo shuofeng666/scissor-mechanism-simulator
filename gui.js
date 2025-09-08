@@ -16,6 +16,7 @@ class GUI{
     this.$showJoints= document.getElementById('showJoints');
     this.$showPivots= document.getElementById('showPivots');
     this.$showTrail = document.getElementById('showTrail');
+    this.$showLabels= document.getElementById('showLabels');
 
     this.$curName   = document.getElementById('currentCurve');
     this.$segNum    = document.getElementById('totalSegments');
@@ -23,8 +24,6 @@ class GUI{
     this.$lenNow    = document.getElementById('currentLength');
     this.$integ     = document.getElementById('integrity');
     this.$integText = document.getElementById('integrityText');
-    this.$showLabels = document.getElementById('showLabels');
-
 
     document.getElementById('resetBtn').addEventListener('click', () => this.reset());
     document.getElementById('randomBtn').addEventListener('click', () => this.randomize());
@@ -67,9 +66,9 @@ class GUI{
       window.showJoints = this.$showJoints.checked;
       window.showPivots = this.$showPivots.checked;
       window.showTrail  = this.$showTrail.checked;
-        window.showLabels = this.$showLabels.checked; // 新增
+      window.showLabels = this.$showLabels.checked;
     };
-    [this.$showCurve, this.$showJoints, this.$showPivots, this.$showTrail].forEach(el=>{
+    [this.$showCurve, this.$showJoints, this.$showPivots, this.$showTrail, this.$showLabels].forEach(el=>{
       el.addEventListener('change', onCheck);
     });
   }
@@ -78,7 +77,7 @@ class GUI{
     const mech = window.curvedScissorMechanism;
     mech.update();
     this.$curName.textContent = ({
-      arc:'圆弧', sine:'正弦', spiral:'螺旋', bezier:'贝塞尔'
+      arc:'圆弧', sine:'正弦', free:'自由绘'
     })[mech.curveType] || mech.curveType;
 
     this.$segNum.textContent = mech.segments;
@@ -92,27 +91,28 @@ class GUI{
   }
 
   reset(){
-    this.$showLabels.checked = true;   // 新增
-window.showLabels = true;          // 新增
-
     this.$segment.value = 4;    this.$linkLen.value = 60;
     this.$curv.value    = 1.0;  this.$len.value     = 300;
     this.$segmentVal.textContent = '4';
     this.$linkVal.textContent    = '60';
     this.$curvVal.textContent    = '1.0';
     this.$lenVal.textContent     = '300';
-    window.currentCurveType = 'arc';
+
     document.querySelectorAll('.curve-btn').forEach(b=>b.classList.remove('active'));
     document.querySelector('[data-curve="arc"]').classList.add('active');
+    window.currentCurveType = 'arc';
 
     this.$showCurve.checked = true;
     this.$showJoints.checked = true;
     this.$showPivots.checked = true;
     this.$showTrail.checked  = false;
+    this.$showLabels.checked = true;
+
     window.showCurve  = true;
     window.showJoints = true;
     window.showPivots = true;
     window.showTrail  = false;
+    window.showLabels = true;
 
     window.curvedScissorMechanism.setParams({
       segments:4, linkLength:60, curvature:1.0, curveLength:300, curveType:'arc'
@@ -125,7 +125,7 @@ window.showLabels = true;          // 新增
     const len = Math.floor(40 + Math.random()*80);
     const cur = +(0.5 + Math.random()*2.0).toFixed(1);
     const L   = Math.floor(200 + Math.random()*250);
-    const types = ['arc','sine','spiral','bezier'];
+    const types = ['arc','sine','free'];
     const tp = types[Math.floor(Math.random()*types.length)];
 
     this.$segment.value = seg;   this.$linkLen.value = len;
