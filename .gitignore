@@ -9,7 +9,6 @@ package-lock.json
 .env
 .env.local
 .env.production
-.env.test
 
 # 日志文件
 *.log
@@ -27,19 +26,13 @@ Desktop.ini
 *.swo
 *~
 
-# 构建输出
-dist/
-build/
-.cache/
-
-# 部署
+# Vercel
 .vercel
-.netlify
 
 # 临时文件
 tmp/
 temp/
 
-# 测试覆盖率
+# 测试覆盖率  
 coverage/
 .nyc_output

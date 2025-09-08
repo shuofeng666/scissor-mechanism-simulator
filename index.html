@@ -3,8 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>优化的剪刀式机构模拟器（无展开/无动画）</title>
+  <meta name="description" content="剪刀式机构模拟器 - 基于 p5.js 的交互式工程力学仿真工具">
+  <meta name="keywords" content="剪刀机构,工程力学,仿真,p5js,可视化">
+  <meta name="author" content="shuofeng666">
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="剪刀式机构模拟器">
+  <meta property="og:description" content="交互式工程力学仿真工具">
+  <meta property="og:type" content="website">
+  
+  <title>剪刀式机构模拟器 | 交互式工程力学仿真</title>
+  
+  <!-- PWA 支持 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#00ffaa">
+  
+  <!-- p5.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/p5@1.7.0/lib/p5.min.js"></script>
+  
   <style>
     body{margin:0;font-family:'Arial',sans-serif;background:linear-gradient(135deg,#0a0a2e,#16213e,#0f3460);color:#fff;overflow:hidden}
     .gui-panel{position:absolute;top:20px;left:20px;background:rgba(0,0,0,.9);padding:25px;border-radius:15px;border:2px solid #00ffaa;min-width:320px;z-index:1000;backdrop-filter:blur(15px);box-shadow:0 0 30px rgba(0,255,170,.3)}
@@ -33,7 +49,7 @@
 </head>
 <body>
   <div class="gui-panel">
-    <div class="gui-title">优化剪刀式机构</div>
+    <div class="gui-title">剪刀式机构模拟器</div>
 
     <div class="section">
       <div class="section-title">曲线类型选择</div>
@@ -167,7 +183,7 @@
     class ImprovedScissorMechanism {
       constructor(){
         this.segments   = 4;
-        this.linkLength = 60;   // 唯一尺度
+        this.linkLength = 60;
         this.curvature  = 1.0;
         this.curveLength= 300;
         this.curveType  = 'arc';
@@ -192,23 +208,20 @@
         this.baseCurve = this.generateBaseCurve();
         if(!this.baseCurve.length) return;
 
-        // 沿曲线均匀取点（按段数）
         for(let i=0;i<=this.segments;i++){
           const t=i/this.segments;
           const idx=Math.floor(t*(this.baseCurve.length-1));
           const cpt=this.baseCurve[idx];
           if(!cpt) continue;
 
-          // 法线方向
           const n=this.normalAt(idx);
-          const offset = this.linkLength/2; // 仅用杆件长度控制横向偏移
+          const offset = this.linkLength/2;
 
           const left  = { x:this.centerX+cpt.x - n.x*offset, y:this.centerY+cpt.y - n.y*offset, side:'left',  level:i, curvePoint:cpt, id:`L${i}` };
           const right = { x:this.centerX+cpt.x + n.x*offset, y:this.centerY+cpt.y + n.y*offset, side:'right', level:i, curvePoint:cpt, id:`R${i}` };
           this.joints.push(left,right);
         }
 
-        // 交叉连杆 + 计算交点（铰链轴心）
         for(let i=0;i<this.segments;i++){
           const LB=this.joints[i*2], RB=this.joints[i*2+1],
                 LT=this.joints[(i+1)*2], RT=this.joints[(i+1)*2+1];
@@ -246,7 +259,6 @@
       }
       updateTrail(){
         if(!showTrail) return;
-        // 记录顶端中点轨迹（静态不变时效果有限）
         if(this.joints.length>=2){
           const tops=this.joints.filter(j=>j.level===this.segments);
           if(tops.length>=2){
@@ -454,7 +466,7 @@
     }
 
     function draw(){
-      // 背景
+      // 背景渐变
       for(let i=0;i<height;i++){
         const inter=map(i,0,height,0,1);
         const c=lerpColor(color(230,80,10),color(250,60,5),inter);
@@ -475,6 +487,7 @@
       for(let y=0;y<height;y+=s) line(0,y,width,y);
       stroke(180,100,100,50); line(width/2,0,width/2,height); line(0,height/2,width,height/2);
     }
+
     function drawPerformance(){
       fill(0,0,100,.8); textSize(12); textAlign(RIGHT,BOTTOM);
       const metrics=[
@@ -485,14 +498,17 @@
       ];
       for(let i=0;i<metrics.length;i++) text(metrics[i], width-20, height-20-(i*18));
     }
-    function windowResized(){ resizeCanvas(windowWidth,windowHeight); curvedScissorMechanism.setCenter(width/2,height/2); }
 
-    // 移除与动画/展开相关的快捷键，仅保留显示切换与曲线快捷键
+    function windowResized(){ 
+      resizeCanvas(windowWidth,windowHeight); 
+      curvedScissorMechanism.setCenter(width/2,height/2); 
+    }
+
     function keyPressed(){
       switch(key){
         case 'p': case 'P': showPivots=!showPivots; document.getElementById('showPivots').checked=showPivots; break;
         case 'j': case 'J': showJoints=!showJoints; document.getElementById('showJoints').checked=showJoints; break;
-        case 'c': case 'C': showCurve=!showCurve;   document.getElementById('showCurve').checked=showCurve;   break;
+        case 'c': case 'C': showCurve=!showCurve; document.getElementById('showCurve').checked=showCurve; break;
         case '1': document.querySelector('[data-curve="arc"]').click(); break;
         case '2': document.querySelector('[data-curve="sine"]').click(); break;
         case '3': document.querySelector('[data-curve="spiral"]').click(); break;
@@ -500,24 +516,21 @@
         case 'r': case 'R': gui.reset(); break;
       }
     }
+
+    // p5.js 加载检查
+    (function(){
+      function showFail(){
+        var div=document.createElement('div');
+        div.style.position='fixed';div.style.top='10px';div.style.left='50%';div.style.transform='translateX(-50%)';
+        div.style.background='rgba(255,0,0,0.9)';div.style.color='#fff';div.style.padding='10px 14px';div.style.zIndex='2000';
+        div.style.borderRadius='8px';div.style.boxShadow='0 2px 10px rgba(0,0,0,.3)';
+        div.textContent='未能加载 p5.js（网络限制）。页面功能受限。';
+        document.body.appendChild(div);
+      }
+      if(!(window.p5)){
+        setTimeout(function(){ if(!(window.p5)) showFail(); }, 800);
+      }
+    })();
   </script>
-<script>
-(function(){
-  function showFail(){
-    var div=document.createElement('div');
-    div.style.position='fixed';div.style.top='10px';div.style.left='50%';div.style.transform='translateX(-50%)';
-    div.style.background='rgba(255,0,0,0.9)';div.style.color='#fff';div.style.padding='10px 14px';div.style.zIndex='2000';
-    div.style.borderRadius='8px';div.style.boxShadow='0 2px 10px rgba(0,0,0,.3)';
-    div.textContent='未能加载 p5.js（网络或沙箱限制）。页面功能受限。';
-    document.body.appendChild(div);
-  }
-  if(!(window.p5)){
-    setTimeout(function(){ if(!(window.p5)) showFail(); }, 800);
-  }
-})();
-</script>
 </body>
 </html>
-
-
-
