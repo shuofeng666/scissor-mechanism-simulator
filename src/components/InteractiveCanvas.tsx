@@ -146,7 +146,19 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
     if (anchorMode) {
       const hit = pickNodeAt(x, y);
       if (hit) {
-        setAnchor({ id: hit.id, world: { x: hit.world.x, y: hit.world.y } });
+        // 将屏幕坐标转换为世界坐标
+        const worldPos = {
+          x: hit.world.x,
+          y: hit.world.y
+        };
+        
+        // 设置UI状态
+        setAnchor({ id: hit.id, world: worldPos });
+        
+        // 安全地设置机构的锚点约束
+        if (mechanism && typeof mechanism.setAnchor === 'function') {
+          mechanism.setAnchor(hit.id, worldPos);
+        }
       }
       return;
     }

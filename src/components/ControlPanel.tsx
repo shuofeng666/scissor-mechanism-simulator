@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { MechanismParams, ShowOptions, AnchorState } from '../types';
+import { ImprovedScissorMechanism } from '../lib/ScissorMechanism';
 
 interface ControlPanelProps {
   params: MechanismParams;
@@ -15,6 +16,7 @@ interface ControlPanelProps {
   onReset: () => void;
   onRandomize: () => void;
   onExportSVG: () => void;
+  mechanism: ImprovedScissorMechanism; // 添加 mechanism 参数
 }
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -28,7 +30,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   setAnchor,
   onReset,
   onRandomize,
-  onExportSVG
+  onExportSVG,
+  mechanism
 }) => {
   return (
     <div className="absolute top-4 left-4 w-80 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-4 space-y-4 max-h-[90vh] overflow-y-auto">
@@ -167,12 +170,18 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             onClick={() => {
               setAnchor({ id: null, world: null });
               setAnchorMode(false);
+              // 安全检查 - 只有当方法存在时才调用
+              if (mechanism && typeof mechanism.setAnchor === 'function') {
+                mechanism.setAnchor(null, null);
+              }
             }}
             className="flex-1 px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-900 text-xs rounded border border-gray-300"
           >
             Clear
           </button>
-          <span className="text-xs text-gray-500 px-2 py-1">{anchor?.id || 'none'}</span>
+          <span className="text-xs text-gray-500 px-2 py-1 bg-gray-50 rounded border border-gray-200">
+            {anchor?.id || 'none'}
+          </span>
         </div>
       </div>
 

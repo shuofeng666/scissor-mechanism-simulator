@@ -105,6 +105,10 @@ export default function ScissorMechanismApp() {
 
   // 重置功能
   const handleReset = useCallback(() => {
+    // 强制重新创建 mechanism 实例以确保使用最新版本
+    mechanismRef.current = new ImprovedScissorMechanism();
+    const mechanism = mechanismRef.current;
+    
     setParams({
       segments: 4,
       linkLength: 60,
@@ -125,7 +129,20 @@ export default function ScissorMechanismApp() {
     setAnchor({ id: null, world: null });
     setAnchorMode(false);
     setIsDrawing(false);
-  }, []);
+    
+    // 重新设置机构参数
+    if (mechanism) {
+      mechanism.setCenter(canvasSize.width / 2, canvasSize.height / 2);
+      mechanism.setParams({
+        segments: 4,
+        linkLength: 60,
+        curvature: 1.0,
+        curveLength: 300,
+        curveType: 'arc'
+      });
+      mechanism.update();
+    }
+  }, [canvasSize]);
 
   // 随机化功能
   const handleRandomize = useCallback(() => {
@@ -178,6 +195,7 @@ export default function ScissorMechanismApp() {
           anchorMode={anchorMode}
           isDrawing={isDrawing}
           setIsDrawing={setIsDrawing}
+          mfgParams={mfgParams}
         />
       </div>
 
@@ -194,6 +212,7 @@ export default function ScissorMechanismApp() {
         onReset={handleReset}
         onRandomize={handleRandomize}
         onExportSVG={handleExportSVG}
+        mechanism={mechanism}
       />
 
       {/* 状态面板 */}

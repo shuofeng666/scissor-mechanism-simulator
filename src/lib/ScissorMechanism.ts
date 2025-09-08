@@ -58,6 +58,12 @@ export interface TrailPoint extends Point {
   t: number;
 }
 
+export interface AnchorInfo {
+  id: string;
+  originalPos: Point;
+  targetPos: Point;
+}
+
 // 完整的剪刀机构类
 export class ImprovedScissorMechanism {
   segments: number;
@@ -73,6 +79,10 @@ export class ImprovedScissorMechanism {
   trailPoints: TrailPoint[];
   baseCurve: Point[];
   _dirty: boolean;
+  
+  // 锚点相关
+  private _anchor: AnchorInfo | null = null;
+  private _originalMechanismCenter: Point = { x: 0, y: 0 };
 
   constructor() {
     this.segments = 4;
@@ -109,6 +119,58 @@ export class ImprovedScissorMechanism {
     if (params.curveLength !== undefined) this.curveLength = Number(params.curveLength);
     if (params.curveType !== undefined) this.curveType = params.curveType;
     this._dirty = true;
+  }
+
+  // 设置锚点
+  setAnchor(anchorId: string | null, targetWorldPos: Point | null): void {
+    if (!anchorId || !targetWorldPos) {
+      this._anchor = null;
+      return;
+    }
+
+    // 找到对应的节点
+    const pivot = this.pivots.find(p => p.id === anchorId);
+    const joint = this.joints.find(j => j.id === anchorId);
+    const node = pivot || joint;
+    
+    if (!node) {
+      this._anchor = null;
+      return;
+    }
+
+    // 记录锚点信息
+    this._anchor = {
+      id: anchorId,
+      originalPos: { x: node.x, y: node.y },
+      targetPos: { x: targetWorldPos.x, y: targetWorldPos.y }
+    };
+
+    // 立即应用锚点约束
+    this._applyAnchorConstraint();
+  }
+
+  // 获取当前锚点信息
+  getAnchor(): AnchorInfo | null {
+    return this._anchor;
+  }
+
+  // 应用锚点约束
+  private _applyAnchorConstraint(): void {
+    if (!this._anchor) return;
+
+    // 找到锚点节点
+    const pivot = this.pivots.find(p => p.id === this._anchor!.id);
+    const joint = this.joints.find(j => j.id === this._anchor!.id);
+    const anchorNode = pivot || joint;
+    
+    if (!anchorNode) return;
+
+    // 计算需要移动的偏移量
+    const dx = this._anchor.targetPos.x - anchorNode.x;
+    const dy = this._anchor.targetPos.y - anchorNode.y;
+
+    // 移动整个机构
+    this._translateAll(dx, dy);
   }
 
   generateBaseCurve(freeCurve: Point[] | null = null): Point[] {
@@ -189,6 +251,11 @@ export class ImprovedScissorMechanism {
       P.links.push(link1, link2, link3, link4);
     }
 
+    // 应用锚点约束（如果存在）
+    if (this._anchor) {
+      this._applyAnchorConstraint();
+    }
+
     this.updateTrail();
     this._dirty = false;
   }
@@ -246,12 +313,19 @@ export class ImprovedScissorMechanism {
   getIntegrity(): { level: 'error' | 'warning' | 'good'; text: string } {
     if (!this.pivots.length) return { level: 'error', text: 'No pivot' };
     if (this.pivots.length < this.segments) return { level: 'warning', text: 'Partial' };
+    
+    // 如果有锚点，显示锚点状态
+    if (this._anchor) {
+      return { level: 'good', text: `Anchored: ${this._anchor.id}` };
+    }
+    
     return { level: 'good', text: 'OK' };
   }
 
   _translateAll(dx: number, dy: number) {
     for (const j of this.joints) { j.x += dx; j.y += dy; }
     for (const p of this.pivots) { p.x += dx; p.y += dy; }
+    for (const t of this.trailPoints) { t.x += dx; t.y += dy; }
     this.centerX += dx; this.centerY += dy;
   }
 
