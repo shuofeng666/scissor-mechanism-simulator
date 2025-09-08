@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>优化的剪刀式机构模拟器（无展开/无动画）</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.7.0/lib/p5.min.js"></script>
+  <style>
+    body{margin:0;font-family:'Arial',sans-serif;background:linear-gradient(135deg,#0a0a2e,#16213e,#0f3460);color:#fff;overflow:hidden}
+    .gui-panel{position:absolute;top:20px;left:20px;background:rgba(0,0,0,.9);padding:25px;border-radius:15px;border:2px solid #00ffaa;min-width:320px;z-index:1000;backdrop-filter:blur(15px);box-shadow:0 0 30px rgba(0,255,170,.3)}
+    .gui-title{font-size:28px;font-weight:bold;margin-bottom:25px;color:#00ffaa;text-shadow:0 0 20px rgba(0,255,170,.6);text-align:center}
+    .section{margin-bottom:25px;padding:15px;background:rgba(255,255,255,.05);border-radius:10px;border-left:3px solid #00ffaa}
+    .section-title{font-size:16px;color:#00ffaa;margin-bottom:15px;font-weight:bold}
+    .slider-group{margin-bottom:18px}
+    .slider-label{font-size:14px;margin-bottom:8px;color:#ddd;display:flex;justify-content:space-between}
+    .slider{width:100%;margin-bottom:5px;accent-color:#00ffaa;background:rgba(255,255,255,.1);border-radius:10px;height:6px}
+    .curve-selector{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:15px}
+    .curve-btn{padding:8px 12px;background:rgba(255,255,255,.1);color:#fff;border:1px solid #555;border-radius:8px;cursor:pointer;transition:.3s;font-size:11px;flex:1;min-width:60px;text-align:center}
+    .curve-btn.active{background:linear-gradient(45deg,#00ffaa,#00ccaa);border-color:#00ffaa;color:#000;font-weight:bold}
+    .curve-btn:hover{background:rgba(0,255,170,.3);border-color:#00ffaa}
+    .button-group{display:flex;gap:10px;margin:20px 0;flex-wrap:wrap}
+    button{padding:12px 16px;background:linear-gradient(45deg,#333,#555);color:#fff;border:none;border-radius:8px;cursor:pointer;transition:.3s;font-size:12px;border:1px solid rgba(255,255,255,.2)}
+    button:hover{background:linear-gradient(45deg,#00ffaa,#00ccaa);color:#000;transform:translateY(-2px);box-shadow:0 4px 15px rgba(0,255,170,.4)}
+    .checkbox-group{margin:15px 0;display:flex;align-items:center;gap:10px}
+    input[type="checkbox"]{accent-color:#00ffaa;transform:scale(1.2)}
+    .info-panel{position:absolute;top:20px;right:20px;background:rgba(0,0,0,.9);padding:20px;border-radius:15px;border:2px solid #ff6b6b;font-size:13px;max-width:280px;backdrop-filter:blur(15px);box-shadow:0 0 30px rgba(255,107,107,.3)}
+    .info-title{color:#ff6b6b;font-weight:bold;margin-bottom:15px;font-size:18px;text-shadow:0 0 10px rgba(255,107,107,.5)}
+    .info-item{margin:10px 0;display:flex;justify-content:space-between;align-items:center}
+    .status-indicator{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px}
+    .status-good{background:#00ff88}.status-warning{background:#ffaa00}.status-error{background:#ff4444}
+    .value-display{color:#00ffaa;font-weight:bold}
+  </style>
+</head>
+<body>
+  <div class="gui-panel">
+    <div class="gui-title">优化剪刀式机构</div>
+
+    <div class="section">
+      <div class="section-title">曲线类型选择</div>
+      <div class="curve-selector">
+        <button class="curve-btn active" data-curve="arc">圆弧</button>
+        <button class="curve-btn" data-curve="sine">正弦波</button>
+        <button class="curve-btn" data-curve="spiral">螺旋</button>
+        <button class="curve-btn" data-curve="bezier">贝塞尔</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">基本参数</div>
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>机构段数</span><span class="value-display" id="segmentValue">4</span>
+        </div>
+        <input type="range" class="slider" id="segmentSlider" min="2" max="12" value="4">
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>杆件长度</span><span class="value-display" id="linkLengthValue">60px</span>
+        </div>
+        <input type="range" class="slider" id="linkLengthSlider" min="30" max="120" value="60">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">曲线参数</div>
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>曲率强度</span><span class="value-display" id="curvatureValue">1.0</span>
+        </div>
+        <input type="range" class="slider" id="curvatureSlider" min="0.1" max="3.0" value="1.0" step="0.1">
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>曲线长度</span><span class="value-display" id="lengthValue">300px</span>
+        </div>
+        <input type="range" class="slider" id="lengthSlider" min="150" max="500" value="300">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">显示选项</div>
+      <div class="checkbox-group">
+        <input type="checkbox" id="showCurve" checked><label for="showCurve">显示基准曲线</label>
+      </div>
+      <div class="checkbox-group">
+        <input type="checkbox" id="showJoints" checked><label for="showJoints">显示关节点</label>
+      </div>
+      <div class="checkbox-group">
+        <input type="checkbox" id="showPivots" checked><label for="showPivots">显示铰链轴心</label>
+      </div>
+      <div class="checkbox-group">
+        <input type="checkbox" id="showTrail"><label for="showTrail">显示运动轨迹</label>
+      </div>
+    </div>
+
+    <div class="button-group">
+      <button id="resetBtn">重置参数</button>
+      <button id="randomBtn">随机配置</button>
+    </div>
+  </div>
+
+  <div class="info-panel">
+    <div class="info-title">机构状态</div>
+    <div class="info-item"><span>曲线类型:</span><span id="currentCurve">圆弧</span></div>
+    <div class="info-item"><span>总段数:</span><span id="totalSegments">4</span></div>
+    <div class="info-item"><span>铰链轴心:</span><span id="pivotCount">-</span></div>
+    <div class="info-item"><span>曲线弧长:</span><span id="currentLength">-</span></div>
+    <div class="info-item">
+      <span>结构完整性:</span>
+      <span id="integrity"><span class="status-indicator status-good"></span><span id="integrityText">良好</span></span>
+    </div>
+  </div>
+
+  <script>
+    // 全局状态
+    let canvas, curvedScissorMechanism, gui;
+    let currentCurveType = 'arc';
+    let showCurve = true, showJoints = true, showPivots = true, showTrail = false;
+
+    class CurveGenerator {
+      static generateArc(length, curvature){
+        const pts=[], seg=100;
+        const radius = length/(curvature*Math.PI);
+        const angle  = curvature*Math.PI;
+        for(let i=0;i<=seg;i++){
+          const t=i/seg, a=(t-0.5)*angle;
+          const x= radius*Math.sin(a);
+          const y= radius*(Math.cos(a)-1);
+          pts.push({x,y,t});
+        }
+        return pts;
+      }
+      static generateSine(length, curvature){
+        const pts=[], seg=100;
+        for(let i=0;i<=seg;i++){
+          const t=i/seg;
+          const x=(t-0.5)*length;
+          const y= curvature*50*Math.sin(4*Math.PI*t);
+          pts.push({x,y,t});
+        }
+        return pts;
+      }
+      static generateSpiral(length, curvature){
+        const pts=[], seg=100;
+        for(let i=0;i<=seg;i++){
+          const t=i/seg, ang=curvature*4*Math.PI*t, r=t*length/6;
+          pts.push({x:r*Math.cos(ang), y:r*Math.sin(ang), t});
+        }
+        return pts;
+      }
+      static generateBezier(length, curvature){
+        const pts=[], seg=100;
+        const p0={x:-length/2,y:0}, p1={x:-length/4,y:-curvature*80},
+              p2={x: length/4,y: curvature*80},  p3={x: length/2,y:0};
+        for(let i=0;i<=seg;i++){
+          const t=i/seg, u=1-t;
+          const x=u*u*u*p0.x + 3*u*u*t*p1.x + 3*u*t*t*p2.x + t*t*t*p3.x;
+          const y=u*u*u*p0.y + 3*u*u*t*p1.y + 3*u*t*t*p2.y + t*t*t*p3.y;
+          pts.push({x,y,t});
+        }
+        return pts;
+      }
+    }
+
+    class ImprovedScissorMechanism {
+      constructor(){
+        this.segments   = 4;
+        this.linkLength = 60;   // 唯一尺度
+        this.curvature  = 1.0;
+        this.curveLength= 300;
+        this.curveType  = 'arc';
+
+        this.centerX=0; this.centerY=0;
+        this.joints=[]; this.links=[]; this.pivots=[];
+        this.trailPoints=[]; this.baseCurve=[];
+        this.calculateGeometry();
+      }
+      setCenter(x,y){ this.centerX=x; this.centerY=y; }
+      generateBaseCurve(){
+        switch(this.curveType){
+          case 'sine':   return CurveGenerator.generateSine(this.curveLength,this.curvature);
+          case 'spiral': return CurveGenerator.generateSpiral(this.curveLength,this.curvature);
+          case 'bezier': return CurveGenerator.generateBezier(this.curveLength,this.curvature);
+          case 'arc':
+          default:       return CurveGenerator.generateArc(this.curveLength,this.curvature);
+        }
+      }
+      calculateGeometry(){
+        this.joints=[]; this.links=[]; this.pivots=[];
+        this.baseCurve = this.generateBaseCurve();
+        if(!this.baseCurve.length) return;
+
+        // 沿曲线均匀取点（按段数）
+        for(let i=0;i<=this.segments;i++){
+          const t=i/this.segments;
+          const idx=Math.floor(t*(this.baseCurve.length-1));
+          const cpt=this.baseCurve[idx];
+          if(!cpt) continue;
+
+          // 法线方向
+          const n=this.normalAt(idx);
+          const offset = this.linkLength/2; // 仅用杆件长度控制横向偏移
+
+          const left  = { x:this.centerX+cpt.x - n.x*offset, y:this.centerY+cpt.y - n.y*offset, side:'left',  level:i, curvePoint:cpt, id:`L${i}` };
+          const right = { x:this.centerX+cpt.x + n.x*offset, y:this.centerY+cpt.y + n.y*offset, side:'right', level:i, curvePoint:cpt, id:`R${i}` };
+          this.joints.push(left,right);
+        }
+
+        // 交叉连杆 + 计算交点（铰链轴心）
+        for(let i=0;i<this.segments;i++){
+          const LB=this.joints[i*2], RB=this.joints[i*2+1],
+                LT=this.joints[(i+1)*2], RT=this.joints[(i+1)*2+1];
+          if(!(LB&&RB&&LT&&RT)) continue;
+
+          const p = this.lineIntersection(LB,RT,RB,LT);
+          if(!p) continue;
+
+          const pivot={x:p.x,y:p.y,segment:i,id:`P${i}`,links:[]};
+          this.pivots.push(pivot);
+
+          const link1={start:LB,end:pivot,type:'primary',segment:i,id:`${LB.id}-${pivot.id}`};
+          const link2={start:pivot,end:RT,type:'primary',segment:i,id:`${pivot.id}-${RT.id}`};
+          const link3={start:RB,end:pivot,type:'secondary',segment:i,id:`${RB.id}-${pivot.id}`};
+          const link4={start:pivot,end:LT,type:'secondary',segment:i,id:`${pivot.id}-${LT.id}`};
+          this.links.push(link1,link2,link3,link4);
+          pivot.links.push(link1,link2,link3,link4);
+        }
+
+        this.updateTrail();
+      }
+      lineIntersection(p1,p2,p3,p4){
+        const x1=p1.x,y1=p1.y,x2=p2.x,y2=p2.y,x3=p3.x,y3=p3.y,x4=p4.x,y4=p4.y;
+        const denom=(x1-x2)*(y3-y4)-(y1-y2)*(x3-x4);
+        if(Math.abs(denom)<1e-6) return null;
+        const t=((x1-x3)*(y3-y4)-(y1-y3)*(x3-x4))/denom;
+        return {x:x1+t*(x2-x1), y:y1+t*(y2-y1)};
+      }
+      normalAt(idx){
+        const prev=this.baseCurve[Math.max(0,idx-1)];
+        const next=this.baseCurve[Math.min(this.baseCurve.length-1,idx+1)];
+        const dx=next.x-prev.x, dy=next.y-prev.y;
+        const L=Math.hypot(dx,dy)||1;
+        return {x:-dy/L,y:dx/L};
+      }
+      updateTrail(){
+        if(!showTrail) return;
+        // 记录顶端中点轨迹（静态不变时效果有限）
+        if(this.joints.length>=2){
+          const tops=this.joints.filter(j=>j.level===this.segments);
+          if(tops.length>=2){
+            const m={x:(tops[0].x+tops[1].x)/2,y:(tops[0].y+tops[1].y)/2,time:millis()};
+            this.trailPoints.push(m);
+            if(this.trailPoints.length>150) this.trailPoints.shift();
+          }
+        }
+      }
+      polylineArcLength(){
+        let L=0;
+        for(let i=1;i<this.baseCurve.length;i++){
+          const a=this.baseCurve[i-1], b=this.baseCurve[i];
+          L += Math.hypot(b.x-a.x,b.y-a.y);
+        }
+        return L;
+      }
+      getIntegrity(){
+        if(!this.pivots.length) return {level:'error',text:'无轴心'};
+        if(this.pivots.length < this.segments) return {level:'warning',text:'部分'};
+        return {level:'good',text:'良好'};
+      }
+      update(){ this.calculateGeometry(); }
+      draw(){
+        push();
+        if(showCurve) this.drawBaseCurve();
+        if(showTrail) this.drawTrail();
+        this.drawLinks();
+        if(showJoints) this.drawJoints();
+        if(showPivots) this.drawPivots();
+        pop();
+      }
+      drawBaseCurve(){
+        if(this.baseCurve.length<2) return;
+        noFill(); stroke(180,150,255,150); strokeWeight(2);
+        beginShape();
+        for(const pt of this.baseCurve) vertex(this.centerX+pt.x,this.centerY+pt.y);
+        endShape();
+      }
+      drawLinks(){
+        for(const lk of this.links){
+          if(!(lk.start&&lk.end)) continue;
+          if(lk.type==='primary'){ stroke(120,200,255); strokeWeight(4); }
+          else{ stroke(300,200,255); strokeWeight(3); }
+          line(lk.start.x,lk.start.y,lk.end.x,lk.end.y);
+        }
+      }
+      drawJoints(){
+        for(const j of this.joints){
+          const hue=map(j.level,0,this.segments,60,180);
+          fill(hue,150,200); noStroke(); ellipse(j.x,j.y,8);
+          fill(255,255,255,180); textSize(10); textAlign(CENTER,CENTER); text(j.id,j.x,j.y-15);
+        }
+      }
+      drawPivots(){
+        for(const p of this.pivots){
+          push(); translate(p.x,p.y);
+          fill(0,0,50); stroke(0,0,200); strokeWeight(3); ellipse(0,0,24);
+          fill(0,0,100); stroke(0,0,255); strokeWeight(2); ellipse(0,0,16);
+          fill(30,200,255); noStroke(); ellipse(0,0,8);
+          stroke(255); strokeWeight(1); line(-4,0,4,0); line(0,-4,0,4);
+          fill(255); textSize(12); textAlign(CENTER,CENTER); text(p.id,0,20);
+          pop();
+        }
+      }
+      drawTrail(){
+        if(this.trailPoints.length<2) return;
+        noFill();
+        for(let i=1;i<this.trailPoints.length;i++){
+          const a=this.trailPoints[i-1], b=this.trailPoints[i];
+          const alpha=map(i, 0, this.trailPoints.length-1, 25, 204);
+          const hue=map(i,0,this.trailPoints.length-1,240,300);
+          stroke(hue,180,255,alpha); strokeWeight(2); line(a.x,a.y,b.x,b.y);
+        }
+      }
+    }
+
+    class GUI {
+      constructor(){
+        this.setupCurveSelector();
+        this.setupSliders();
+        this.setupButtons();
+        this.setupCheckboxes();
+      }
+      setupCurveSelector(){
+        const buttons=document.querySelectorAll('.curve-btn');
+        buttons.forEach(btn=>{
+          btn.addEventListener('click',()=>{
+            buttons.forEach(b=>b.classList.remove('active'));
+            btn.classList.add('active');
+            currentCurveType=btn.getAttribute('data-curve');
+            curvedScissorMechanism.curveType=currentCurveType;
+            this.updateDisplay();
+          });
+        });
+      }
+      setupSliders(){
+        this.segmentSlider=document.getElementById('segmentSlider');
+        this.segmentSlider.addEventListener('input',()=>{
+          curvedScissorMechanism.segments=parseInt(this.segmentSlider.value,10);
+          this.updateDisplay();
+        });
+
+        this.linkLengthSlider=document.getElementById('linkLengthSlider');
+        this.linkLengthSlider.addEventListener('input',()=>{
+          curvedScissorMechanism.linkLength=parseInt(this.linkLengthSlider.value,10);
+          this.updateDisplay();
+        });
+
+        this.curvatureSlider=document.getElementById('curvatureSlider');
+        this.curvatureSlider.addEventListener('input',()=>{
+          curvedScissorMechanism.curvature=parseFloat(this.curvatureSlider.value);
+          this.updateDisplay();
+        });
+
+        this.lengthSlider=document.getElementById('lengthSlider');
+        this.lengthSlider.addEventListener('input',()=>{
+          curvedScissorMechanism.curveLength=parseInt(this.lengthSlider.value,10);
+          this.updateDisplay();
+        });
+      }
+      setupButtons(){
+        document.getElementById('resetBtn').addEventListener('click',()=>this.reset());
+        document.getElementById('randomBtn').addEventListener('click',()=>this.randomize());
+      }
+      setupCheckboxes(){
+        document.getElementById('showCurve').addEventListener('change',e=>{showCurve=e.target.checked;});
+        document.getElementById('showJoints').addEventListener('change',e=>{showJoints=e.target.checked;});
+        document.getElementById('showPivots').addEventListener('change',e=>{showPivots=e.target.checked;});
+        document.getElementById('showTrail').addEventListener('change',e=>{
+          showTrail=e.target.checked;
+          if(!showTrail) curvedScissorMechanism.trailPoints=[];
+        });
+      }
+      updateDisplay(){
+        document.getElementById('segmentValue').textContent=curvedScissorMechanism.segments;
+        document.getElementById('linkLengthValue').textContent=`${curvedScissorMechanism.linkLength}px`;
+        document.getElementById('curvatureValue').textContent=curvedScissorMechanism.curvature.toFixed(1);
+        document.getElementById('lengthValue').textContent=`${curvedScissorMechanism.curveLength}px`;
+
+        const curveNames={arc:'圆弧',sine:'正弦波',spiral:'螺旋',bezier:'贝塞尔'};
+        document.getElementById('currentCurve').textContent=curveNames[currentCurveType]||'未知';
+        document.getElementById('totalSegments').textContent=curvedScissorMechanism.segments;
+        document.getElementById('pivotCount').textContent=curvedScissorMechanism.pivots.length;
+        document.getElementById('currentLength').textContent=`${curvedScissorMechanism.polylineArcLength().toFixed(1)}px`;
+
+        const integ=curvedScissorMechanism.getIntegrity();
+        const indicator=document.querySelector('.status-indicator');
+        indicator.className=`status-indicator status-${integ.level}`;
+        document.getElementById('integrityText').textContent=integ.text;
+      }
+      reset(){
+        curvedScissorMechanism.segments=4;
+        curvedScissorMechanism.linkLength=60;
+        curvedScissorMechanism.curvature=1.0;
+        curvedScissorMechanism.curveLength=300;
+        currentCurveType='arc';
+        curvedScissorMechanism.curveType='arc';
+
+        this.segmentSlider.value=4;
+        this.linkLengthSlider.value=60;
+        this.curvatureSlider.value=1.0;
+        this.lengthSlider.value=300;
+
+        document.querySelectorAll('.curve-btn').forEach(b=>{
+          b.classList.toggle('active', b.getAttribute('data-curve')==='arc');
+        });
+
+        curvedScissorMechanism.trailPoints=[];
+        this.updateDisplay();
+      }
+      randomize(){
+        const types=['arc','sine','spiral','bezier'];
+        const t=types[Math.floor(Math.random()*types.length)];
+        currentCurveType=t; curvedScissorMechanism.curveType=t;
+        document.querySelectorAll('.curve-btn').forEach(b=>{
+          b.classList.toggle('active', b.getAttribute('data-curve')===t);
+        });
+
+        curvedScissorMechanism.segments = Math.floor(Math.random()*8)+3;
+        curvedScissorMechanism.linkLength= Math.floor(Math.random()*60)+40;
+        curvedScissorMechanism.curvature = Math.random()*2.5+0.5;
+        curvedScissorMechanism.curveLength= Math.floor(Math.random()*250)+200;
+
+        this.segmentSlider.value=curvedScissorMechanism.segments;
+        this.linkLengthSlider.value=curvedScissorMechanism.linkLength;
+        this.curvatureSlider.value=curvedScissorMechanism.curvature;
+        this.lengthSlider.value=curvedScissorMechanism.curveLength;
+
+        curvedScissorMechanism.trailPoints=[];
+        this.updateDisplay();
+      }
+    }
+
+    function setup(){
+      canvas=createCanvas(windowWidth,windowHeight);
+      canvas.parent(document.body);
+      colorMode(HSB);
+
+      curvedScissorMechanism=new ImprovedScissorMechanism();
+      curvedScissorMechanism.setCenter(width/2,height/2);
+
+      gui=new GUI();
+      gui.updateDisplay();
+    }
+
+    function draw(){
+      // 背景
+      for(let i=0;i<height;i++){
+        const inter=map(i,0,height,0,1);
+        const c=lerpColor(color(230,80,10),color(250,60,5),inter);
+        stroke(c); line(0,i,width,i);
+      }
+
+      // 更新几何并绘制
+      curvedScissorMechanism.update();
+      drawGrid();
+      curvedScissorMechanism.draw();
+      drawPerformance();
+    }
+
+    function drawGrid(){
+      stroke(0,0,100,20); strokeWeight(1);
+      const s=50;
+      for(let x=0;x<width;x+=s) line(x,0,x,height);
+      for(let y=0;y<height;y+=s) line(0,y,width,y);
+      stroke(180,100,100,50); line(width/2,0,width/2,height); line(0,height/2,width,height/2);
+    }
+    function drawPerformance(){
+      fill(0,0,100,.8); textSize(12); textAlign(RIGHT,BOTTOM);
+      const metrics=[
+        `FPS: ${frameRate().toFixed(1)}`,
+        `关节数: ${curvedScissorMechanism.joints.length}`,
+        `铰链轴心: ${curvedScissorMechanism.pivots.length}`,
+        `连接数: ${curvedScissorMechanism.links.length}`
+      ];
+      for(let i=0;i<metrics.length;i++) text(metrics[i], width-20, height-20-(i*18));
+    }
+    function windowResized(){ resizeCanvas(windowWidth,windowHeight); curvedScissorMechanism.setCenter(width/2,height/2); }
+
+    // 移除与动画/展开相关的快捷键，仅保留显示切换与曲线快捷键
+    function keyPressed(){
+      switch(key){
+        case 'p': case 'P': showPivots=!showPivots; document.getElementById('showPivots').checked=showPivots; break;
+        case 'j': case 'J': showJoints=!showJoints; document.getElementById('showJoints').checked=showJoints; break;
+        case 'c': case 'C': showCurve=!showCurve;   document.getElementById('showCurve').checked=showCurve;   break;
+        case '1': document.querySelector('[data-curve="arc"]').click(); break;
+        case '2': document.querySelector('[data-curve="sine"]').click(); break;
+        case '3': document.querySelector('[data-curve="spiral"]').click(); break;
+        case '4': document.querySelector('[data-curve="bezier"]').click(); break;
+        case 'r': case 'R': gui.reset(); break;
+      }
+    }
+  </script>
+<script>
+(function(){
+  function showFail(){
+    var div=document.createElement('div');
+    div.style.position='fixed';div.style.top='10px';div.style.left='50%';div.style.transform='translateX(-50%)';
+    div.style.background='rgba(255,0,0,0.9)';div.style.color='#fff';div.style.padding='10px 14px';div.style.zIndex='2000';
+    div.style.borderRadius='8px';div.style.boxShadow='0 2px 10px rgba(0,0,0,.3)';
+    div.textContent='未能加载 p5.js（网络或沙箱限制）。页面功能受限。';
+    document.body.appendChild(div);
+  }
+  if(!(window.p5)){
+    setTimeout(function(){ if(!(window.p5)) showFail(); }, 800);
+  }
+})();
+</script>
+</body>
+</html>
+
+
+
