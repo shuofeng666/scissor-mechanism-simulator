@@ -221,7 +221,8 @@ export default function ScissorMechanismApp() {
       {/* 制造参数面板 */}
       <ManufacturingPanel 
         params={mfgParams} 
-        setParams={setMfgParams} 
+        setParams={setMfgParams}
+        mechanism={mechanism}
       />
 
       {/* 帮助信息 */}
