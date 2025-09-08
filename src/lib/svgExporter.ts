@@ -129,10 +129,12 @@ export const exportLinksToSVG = (
     svgParts.push(`<path d="${capsulePath(cx, cy, p.Lmm, bodyW)}"/>`);
     
     const r = holeD / 2; 
-    const hx1 = cx - p.Lmm / 2;
-    const hx2 = cx + p.Lmm / 2;
+    const hx1 = cx - p.Lmm / 2;  // 左端孔
+    const hx2 = cx + p.Lmm / 2;  // 右端孔
+    const hxm = cx;              // 中间孔
     const hy = cy;
     svgParts.push(`<circle cx="${hx1}" cy="${hy}" r="${r}"/>`);
+    svgParts.push(`<circle cx="${hxm}" cy="${hy}" r="${r}"/>`);  // 中间的枢轴孔
     svgParts.push(`<circle cx="${hx2}" cy="${hy}" r="${r}"/>`);
   }
   

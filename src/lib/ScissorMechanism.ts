@@ -44,13 +44,15 @@ export interface Joint extends Point {
 export interface Pivot extends Point {
   segment: number;
   id: string;
-  links: Link[];
+  link1: Link;  // 第一根穿过此枢轴的连杆
+  link2: Link;  // 第二根穿过此枢轴的连杆
 }
 
 export interface Link {
-  start: Joint | Pivot;
-  end: Joint | Pivot;
-  type: 'a' | 'b';
+  start: Joint;
+  end: Joint;
+  pivot: Pivot | null;  // 这根连杆的中间枢轴点
+  type: 'a' | 'b';  // 'a'类型: L->R斜上, 'b'类型: R->L斜上
   id: string;
 }
 
@@ -187,7 +189,7 @@ export class ImprovedScissorMechanism {
     }
   }
 
-  // 修复计算几何方法的类型安全
+  // 修复计算几何方法 - 正确的连杆结构
   calculateGeometry(freeCurve: Point[] | null = null): void {
     this.joints.length = 0;
     this.links.length = 0;
@@ -221,34 +223,54 @@ export class ImprovedScissorMechanism {
       this.joints.push(L, R);
     }
 
-    // 生成支点和连杆
+    // 生成连杆和支点 - 正确的剪刀结构
     for (let i = 0; i < this.segments; i++) {
-      const LB = this.joints[i * 2];
-      const RB = this.joints[i * 2 + 1];
-      const LT = this.joints[(i + 1) * 2];
-      const RT = this.joints[(i + 1) * 2 + 1];
+      const LB = this.joints[i * 2];      // L bottom
+      const RB = this.joints[i * 2 + 1];  // R bottom
+      const LT = this.joints[(i + 1) * 2];    // L top
+      const RT = this.joints[(i + 1) * 2 + 1]; // R top
       
       if (!(LB && RB && LT && RT)) continue;
 
-      const p = this.lineIntersection(LB, RT, RB, LT);
-      if (!p) continue;
+      // 计算两根连杆的交点（枢轴点）
+      const pivotPoint = this.lineIntersection(LB, RT, RB, LT);
+      if (!pivotPoint) continue;
       
+      // 创建枢轴点（先创建，稍后设置link1和link2）
       const P: Pivot = { 
-        x: p.x, 
-        y: p.y, 
+        x: pivotPoint.x, 
+        y: pivotPoint.y, 
         segment: i, 
-        id: `P${i}`, 
-        links: [] 
+        id: `P${i}`,
+        link1: null as any,  // 暂时设为null
+        link2: null as any   // 暂时设为null
       };
-      this.pivots.push(P);
-
-      const link1: Link = { start: LB, end: P, type: 'a', id: `${LB.id}-${P.id}` };
-      const link2: Link = { start: P, end: RT, type: 'a', id: `${P.id}-${RT.id}` };
-      const link3: Link = { start: RB, end: P, type: 'b', id: `${RB.id}-${P.id}` };
-      const link4: Link = { start: P, end: LT, type: 'b', id: `${P.id}-${LT.id}` };
       
-      this.links.push(link1, link2, link3, link4);
-      P.links.push(link1, link2, link3, link4);
+      // 创建两根完整的连杆
+      // 连杆1: 从 LB 到 RT (类型 'a' - 左下到右上)
+      const link1: Link = { 
+        start: LB, 
+        end: RT, 
+        pivot: P,
+        type: 'a', 
+        id: `${LB.id}-${RT.id}` 
+      };
+      
+      // 连杆2: 从 RB 到 LT (类型 'b' - 右下到左上)
+      const link2: Link = { 
+        start: RB, 
+        end: LT, 
+        pivot: P,
+        type: 'b', 
+        id: `${RB.id}-${LT.id}` 
+      };
+      
+      // 设置枢轴点的连杆引用
+      P.link1 = link1;
+      P.link2 = link2;
+      
+      this.pivots.push(P);
+      this.links.push(link1, link2);
     }
 
     // 应用锚点约束（如果存在）

@@ -379,10 +379,18 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                       strokeWidth="1"
                     />
                     
-                    {/* 螺栓孔 */}
+                    {/* 螺栓孔 - 两端和中间共3个 */}
                     <circle 
                       cx={startScreen.x} 
                       cy={startScreen.y} 
+                      r={holeRadiusPx}
+                      fill="white"
+                      stroke="#ef4444"
+                      strokeWidth="1"
+                    />
+                    <circle 
+                      cx={centerX} 
+                      cy={centerY} 
                       r={holeRadiusPx}
                       fill="white"
                       stroke="#ef4444"
