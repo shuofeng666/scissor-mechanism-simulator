@@ -1,0 +1,9 @@
+{
+  "name": "剪刀式机构模拟器",
+  "short_name": "ScissorSim",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0f3460",
+  "theme_color": "#00ffaa",
+  "icons": []
+}
