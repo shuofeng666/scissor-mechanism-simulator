@@ -34,7 +34,7 @@ export const ManufacturingPanel: React.FC<ManufacturingPanelProps> = ({ params, 
               className="w-full px-1 py-1 text-xs border border-gray-300 rounded"
             />
           </div>
-          <div>
+        {/*   <div>
             <label className="block text-gray-600 mb-1">px→mm</label>
             <input
               type="number"
@@ -53,7 +53,7 @@ export const ManufacturingPanel: React.FC<ManufacturingPanelProps> = ({ params, 
               min="1"
               className="w-full px-1 py-1 text-xs border border-gray-300 rounded"
             />
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
