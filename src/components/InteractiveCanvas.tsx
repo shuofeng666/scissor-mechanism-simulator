@@ -122,10 +122,13 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
       const hit = pickNodeAt(x, y);
       if (hit) {
         // 将屏幕坐标转换为世界坐标
-        const worldPos = {
+/*         const worldPos = {
           x: hit.world.x,
           y: hit.world.y
-        };
+        }; */
+
+         // ✅ 改为用模型坐标（非常关键）：
+    const worldPos = screenToModel(x, y);
         
         // 设置UI状态
         setAnchor({ id: hit.id, world: worldPos });

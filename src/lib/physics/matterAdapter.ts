@@ -86,20 +86,73 @@ export function buildWorldFromMechanism(
   // 5) API
   let anchorId: string | null = null;
 
-  function setAnchor(id: string | null) {
-    // 取消旧 anchor
-    if (anchorId && bodies[anchorId]) {
-      Matter.Body.setStatic(bodies[anchorId], false);
-    }
-    anchorId = id;
-    if (anchorId && bodies[anchorId]) {
-      // 清零速度再设静态，稳定
-      const b = bodies[anchorId];
-      Matter.Body.setVelocity(b, { x: 0, y: 0 });
-      Matter.Body.setAngularVelocity(b, 0);
-      Matter.Body.setStatic(b, true);
-    }
+function setAnchor(id: string | null) {
+  // 清理旧的 anchor（关节静态 & 枢轴锚体）
+  if (anchorId && bodies[anchorId]) {
+    Matter.Body.setStatic(bodies[anchorId], false);
   }
+  // 如果之前创建过枢轴-锚体，移除它和它的约束
+  if ((setAnchor as any).__pivotAnchor) {
+    const pa = (setAnchor as any).__pivotAnchor as {
+      body: Matter.Body; cons: Matter.Constraint[];
+    };
+    pa.cons.forEach(c => Matter.World.remove(world, c));
+    Matter.World.remove(world, pa.body);
+    (setAnchor as any).__pivotAnchor = null;
+  }
+
+  anchorId = id;
+
+  if (!anchorId) return;
+
+  // 情况 A：关节（例如 "L3" / "R2"）
+  if (bodies[anchorId]) {
+    const b = bodies[anchorId];
+    Matter.Body.setVelocity(b, { x: 0, y: 0 });
+    Matter.Body.setAngularVelocity(b, 0);
+    Matter.Body.setStatic(b, true);
+    return;
+  }
+
+  // 情况 B：枢轴（例如 "P0"）
+  // 从机制中找到该段的四个相关关节：LB, RB, LT, RT
+  if (/^P\d+$/.test(anchorId)) {
+    const seg = parseInt(anchorId.slice(1), 10);
+    // joints 在机制中排列：每个 level 有 L、R 两个，索引 = level*2 (+0 = L, +1 = R)
+    const LB = mech.joints[seg * 2];
+    const RB = mech.joints[seg * 2 + 1];
+    const LT = mech.joints[(seg + 1) * 2];
+    const RT = mech.joints[(seg + 1) * 2 + 1];
+
+    if (!(LB && RB && LT && RT)) return;
+
+    const pivot = mech.pivots.find(p => p.id === anchorId);
+    if (!pivot) return;
+
+    // 1) 创建一个静态圆点作为“地锚”
+    const anchorBody = Matter.Bodies.circle(pivot.x, pivot.y, 2, { isStatic: true });
+
+    // 2) 与四个关节各连一条距离约束（长度=当前距离）
+    const cons: Matter.Constraint[] = [];
+    for (const j of [LB, RB, LT, RT]) {
+      const bj = bodies[j.id];
+      if (!bj) continue;
+      const L = Math.hypot(bj.position.x - pivot.x, bj.position.y - pivot.y);
+      const c = Matter.Constraint.create({
+        bodyA: anchorBody, bodyB: bj,
+        length: L, stiffness: 1, damping: 0.03, render: { visible: false }
+      });
+      cons.push(c);
+    }
+
+    Matter.World.add(world, [anchorBody, ...cons]);
+    (setAnchor as any).__pivotAnchor = { body: anchorBody, cons };
+    return;
+  }
+
+  // 其它 id：忽略
+}
+
 
   function setGravity(on: boolean) {
     world.gravity.y = on ? 1 : 0;
