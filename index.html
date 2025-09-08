@@ -2,140 +2,73 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="剪刀式机构模拟器 - 基于 p5.js 的交互式工程力学仿真工具"
-    />
-    <meta name="keywords" content="剪刀机构,工程力学,仿真,p5js,可视化" />
-    <meta name="author" content="shuofeng666" />
-
-    <!-- Open Graph -->
-    <meta property="og:title" content="剪刀式机构模拟器" />
-    <meta property="og:description" content="交互式工程力学仿真工具" />
-    <meta property="og:type" content="website" />
-
-    <title>剪刀式机构模拟器 | 交互式工程力学仿真</title>
-
-    <!-- PWA 支持 -->
-    <link rel="manifest" href="manifest.json" />
-    <meta name="theme-color" content="#00ffaa" />
-
-    <!-- p5.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/p5@1.7.0/lib/p5.min.js"></script>
-
-    <!-- 样式 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="剪刀式机构模拟器（极简线稿风）" />
+    <title>剪刀式机构模拟器 · 极简线稿</title>
     <link rel="stylesheet" href="styles.css" />
+    <!-- p5.js -->
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.7.0/lib/p5.min.js"></script>
   </head>
   <body>
     <!-- 左侧控制面板 -->
     <div class="gui-panel">
-      <div class="gui-title">剪刀式机构模拟器</div>
+      <h1 class="gui-title">剪刀式机构</h1>
 
-      <div class="section">
-        <div class="section-title">曲线类型选择</div>
+      <section class="section">
+        <div class="section-title">曲线</div>
         <div class="curve-selector">
           <button class="curve-btn active" data-curve="arc">圆弧</button>
-          <button class="curve-btn" data-curve="sine">正弦波</button>
+          <button class="curve-btn" data-curve="sine">正弦</button>
           <button class="curve-btn" data-curve="spiral">螺旋</button>
           <button class="curve-btn" data-curve="bezier">贝塞尔</button>
         </div>
-      </div>
+      </section>
 
-      <div class="section">
+      <section class="section">
         <div class="section-title">基本参数</div>
-        <div class="slider-group">
+        <label class="slider-group">
           <div class="slider-label">
-            <span>机构段数</span
-            ><span class="value-display" id="segmentValue">4</span>
+            <span>机构段数</span><span id="segmentValue" class="value">4</span>
           </div>
-          <input
-            type="range"
-            class="slider"
-            id="segmentSlider"
-            min="2"
-            max="12"
-            value="4"
-          />
-        </div>
+          <input type="range" id="segmentSlider" min="2" max="12" value="4" />
+        </label>
 
-        <div class="slider-group">
+        <label class="slider-group">
           <div class="slider-label">
-            <span>杆件长度</span
-            ><span class="value-display" id="linkLengthValue">60px</span>
+            <span>杆件长度</span><span id="linkLengthValue" class="value">60</span>
           </div>
-          <input
-            type="range"
-            class="slider"
-            id="linkLengthSlider"
-            min="30"
-            max="120"
-            value="60"
-          />
-        </div>
-      </div>
+          <input type="range" id="linkLengthSlider" min="30" max="120" value="60" />
+        </label>
+      </section>
 
-      <div class="section">
+      <section class="section">
         <div class="section-title">曲线参数</div>
-        <div class="slider-group">
+        <label class="slider-group">
           <div class="slider-label">
-            <span>曲率强度</span
-            ><span class="value-display" id="curvatureValue">1.0</span>
+            <span>曲率强度</span><span id="curvatureValue" class="value">1.0</span>
           </div>
-          <input
-            type="range"
-            class="slider"
-            id="curvatureSlider"
-            min="0.1"
-            max="3.0"
-            value="1.0"
-            step="0.1"
-          />
-        </div>
+          <input type="range" id="curvatureSlider" min="0.1" max="3.0" value="1.0" step="0.1" />
+        </label>
 
-        <div class="slider-group">
+        <label class="slider-group">
           <div class="slider-label">
-            <span>曲线长度</span
-            ><span class="value-display" id="lengthValue">300px</span>
+            <span>曲线长度</span><span id="lengthValue" class="value">300</span>
           </div>
-          <input
-            type="range"
-            class="slider"
-            id="lengthSlider"
-            min="150"
-            max="500"
-            value="300"
-          />
-        </div>
-      </div>
+          <input type="range" id="lengthSlider" min="150" max="500" value="300" />
+        </label>
+      </section>
 
-      <div class="section">
-        <div class="section-title">显示选项</div>
-        <div class="checkbox-group">
-          <input type="checkbox" id="showCurve" checked /><label for="showCurve"
-            >显示基准曲线</label
-          >
-        </div>
-        <div class="checkbox-group">
-          <input type="checkbox" id="showJoints" checked /><label
-            for="showJoints"
-            >显示关节点</label
-          >
-        </div>
-        <div class="checkbox-group">
-          <input type="checkbox" id="showPivots" checked /><label
-            for="showPivots"
-            >显示铰链轴心</label
-          >
-        </div>
-        <div class="checkbox-group">
-          <input type="checkbox" id="showTrail" /><label for="showTrail"
-            >显示运动轨迹</label
-          >
-        </div>
-      </div>
+      <section class="section">
+        <div class="section-title">显示</div>
+        <label class="check"><input type="checkbox" id="showCurve" checked /> 显示基准曲线</label>
+        <label class="check"><input type="checkbox" id="showJoints" checked /> 显示关节</label>
+        <label class="check"><input type="checkbox" id="showPivots" checked /> 显示铰链</label>
+        <label class="check"><input type="checkbox" id="showTrail" /> 显示轨迹</label>
+        <label class="check"><input type="checkbox" id="showLabels" checked /> 显示编号</label>
 
-      <div class="button-group">
+      </section>
+
+      <div class="button-row">
         <button id="resetBtn">重置参数</button>
         <button id="randomBtn">随机配置</button>
       </div>
@@ -143,25 +76,17 @@
 
     <!-- 右上状态面板 -->
     <div class="info-panel">
-      <div class="info-title">机构状态</div>
+      <div class="info-title">状态</div>
+      <div class="info-item"><span>曲线:</span><span id="currentCurve">圆弧</span></div>
+      <div class="info-item"><span>段数:</span><span id="totalSegments">4</span></div>
+      <div class="info-item"><span>铰链:</span><span id="pivotCount">-</span></div>
+      <div class="info-item"><span>弧长:</span><span id="currentLength">-</span></div>
       <div class="info-item">
-        <span>曲线类型:</span><span id="currentCurve">圆弧</span>
+        <span>完整性:</span>
+        <span id="integrity"><span class="dot dot-ok"></span><span id="integrityText">良好</span></span>
       </div>
-      <div class="info-item">
-        <span>总段数:</span><span id="totalSegments">4</span>
-      </div>
-      <div class="info-item">
-        <span>铰链轴心:</span><span id="pivotCount">-</span>
-      </div>
-      <div class="info-item">
-        <span>曲线弧长:</span><span id="currentLength">-</span>
-      </div>
-      <div class="info-item">
-        <span>结构完整性:</span>
-        <span id="integrity"
-          ><span class="status-indicator status-good"></span
-          ><span id="integrityText">良好</span></span
-        >
+      <div class="help">
+        滚轮缩放 · 拖拽平移 · Shift+R 重置视图 · 空格居中
       </div>
     </div>
 

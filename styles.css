@@ -1,236 +1,129 @@
-/* ===== Theme Tokens ======================================================= */
+/* 极简线稿主题：白底 + 细线 + 少量灰度 */
 :root{
-  --bg-1: #fafbfc;          /* 背景基色 - 浅灰白 */
-  --bg-2: #f4f6f8;          /* 面板底色 - 更浅的灰 */
-  --glass: rgba(255,255,255,.85);
-  --border: rgba(0,0,0,.08);
-  --border-strong: rgba(0,0,0,.15);
-  --text: #1a202c;          /* 深色文字 */
-  --muted: #4a5568;         /* 较浅的文字 */
-
-  --acc: #00b894;           /* 主强调色（柔和的青绿） */
-  --acc-2: #0984e3;         /* 次强调：蓝色 */
-  --warn: #f39c12;
-  --err: #e74c3c;
-
-  --radius-lg: 16px;
-  --radius-md: 12px;
-  --radius-sm: 10px;
-
-  --shadow-1: 0 10px 30px rgba(0,0,0,.12);
-  --shadow-2: 0 6px 18px rgba(0,0,0,.08);
-
-  --space-1: 8px;
-  --space-2: 12px;
-  --space-3: 16px;
-  --space-4: 20px;
-  --space-5: 24px;
-
-  --trans-fast: 160ms;
-  --trans-slow: 260ms;
+  --bg: #ffffff;
+  --ink: #111827;      /* 主线/文字：几乎黑 */
+  --muted: #6b7280;    /* 次要文字 */
+  --line: #e5e7eb;     /* 细分隔线 */
+  --curve: #9ca3af;    /* 基准曲线灰 */
+  --accent: #111827;   /* 交互控件用黑 */
+  --radius: 10px;
 }
 
-/* ===== Base =============================================================== */
-*{box-sizing:border-box}
-html,body{height:100%}
+*{ box-sizing: border-box; }
+html, body { height: 100%; }
 body{
-  margin:0;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-  color: var(--text);
-  background:
-    radial-gradient(1200px 1200px at 85% -10%, rgba(0,184,148,.08) 0%, transparent 60%),
-    radial-gradient(900px 900px at -10% 80%, rgba(9,132,227,.08) 0%, transparent 55%),
-    linear-gradient(135deg, #ffffff 0%, #f8fafc 60%, #f1f5f9 100%);
-  overflow:hidden;
-}
-
-/* 细网格背景（更淡更细） */
-body::before{
-  content:"";
-  position:fixed; inset:0;
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.4 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  /* 细网格（很淡） */
   background-image:
-    linear-gradient(to right, rgba(0,0,0,.02) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0,0,0,.02) 1px, transparent 1px);
+    linear-gradient(to right, rgba(17,24,39,0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(17,24,39,0.04) 1px, transparent 1px);
   background-size: 48px 48px;
-  mask-image: radial-gradient(70% 70% at 50% 50%, #000 60%, transparent 100%);
-  pointer-events:none;
+  overflow: hidden;
 }
 
-/* ===== Panels ============================================================= */
-.gui-panel, .info-panel{
-  position:absolute;
-  background: linear-gradient(to bottom right, var(--glass), rgba(255,255,255,.95));
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-1);
+/* 面板：白底 + 细描边，无阴影 */
+.gui-panel,
+.info-panel{
+  position: absolute;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
 }
 
 .gui-panel{
-  top:20px; left:20px; min-width:320px;
-  padding: var(--space-5);
+  top: 16px; left: 16px; width: 320px;
+  padding: 14px 14px 10px;
 }
-
 .info-panel{
-  top:20px; right:20px; max-width:300px;
-  padding: var(--space-4);
-  border-color: var(--border-strong);
+  top: 16px; right: 16px; width: 260px;
+  padding: 12px 14px;
 }
 
-/* ===== Titles & Sections ================================================== */
+/* 标题/分区 */
 .gui-title{
-  margin:0 0 var(--space-5);
-  font-size: 22px;
+  margin: 0 0 10px;
+  font-size: 18px;
   font-weight: 700;
-  letter-spacing:.3px;
-  color: var(--text);
-  display:flex; align-items:center; gap:10px;
+  letter-spacing: .2px;
 }
-.gui-title::before{
-  content:"";
-  width:10px; height:10px; border-radius:50%;
-  background: radial-gradient(circle at 30% 30%, #fff, var(--acc));
-  box-shadow: 0 0 20px var(--acc);
-}
-
 .section{
-  background: rgba(0,0,0,.02);
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
-  margin-bottom: var(--space-4);
+  border-top: 1px solid var(--line);
+  padding: 10px 0 8px;
 }
-
 .section-title{
-  font-size:13px; font-weight:700;
+  font-size: 12px;
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing:.12em;
-  margin-bottom: var(--space-3);
+  margin: 0 0 8px;
+  letter-spacing: .08em;
 }
 
-/* ===== Controls =========================================================== */
-.slider-group{ margin-bottom: var(--space-3); }
-.slider-label{
-  display:flex; justify-content:space-between; align-items:center;
-  font-size:13px; color: var(--muted);
-  margin-bottom: 6px;
-}
-.value-display{ color: var(--acc); font-weight:700; }
-
-.slider{
-  width:100%; height:6px; border-radius: 999px;
-  appearance:none; background: rgba(0,0,0,.08);
-  outline:none;
-}
-.slider::-webkit-slider-thumb{
-  appearance:none; width:16px; height:16px; border-radius:50%;
-  background: var(--acc);
-  border: 2px solid rgba(255,255,255,.9);
-  box-shadow: 0 2px 8px rgba(0,0,0,.15);
-  transition: transform var(--trans-fast);
-}
-.slider:active::-webkit-slider-thumb{ transform: scale(1.06); }
-
-.curve-selector{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom: var(--space-2); }
+/* 控件 */
+.curve-selector{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .curve-btn{
-  flex:1 1 64px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: rgba(0,0,0,.02);
-  color: var(--text);
-  font-size: 12px; cursor:pointer;
-  transition: background var(--trans-fast), border-color var(--trans-fast), transform var(--trans-fast);
+  height: 28px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  font-size: 12px;
+  border-radius: 8px;
+  cursor: pointer;
 }
-.curve-btn:hover{ background: rgba(0,0,0,.05); border-color: var(--border-strong); transform: translateY(-1px); }
-.curve-btn.active{
-  background: linear-gradient(180deg, rgba(0,184,148,.18), rgba(0,184,148,.08));
-  border-color: rgba(0,184,148,.3);
-  color: #065f46;
-  font-weight:700;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 4px 12px rgba(0,184,148,.15);
+.curve-btn.active{ border-color: var(--ink); }
+
+.slider-group{ display: block; margin: 8px 0 10px; }
+.slider-label{
+  display: flex; justify-content: space-between; align-items: baseline;
+  color: var(--muted); margin-bottom: 6px; font-size: 12px;
+}
+.value{ color: var(--ink); }
+
+input[type="range"]{
+  width: 100%;
+  accent-color: var(--accent);
 }
 
-.button-group{ display:flex; gap:10px; margin: var(--space-4) 0 var(--space-2); flex-wrap:wrap; }
+/* 复选 */
+.check{ display: block; margin: 6px 0; color: var(--ink); }
+.check input{ transform: translateY(1px); }
+
+/* 按钮行 */
+.button-row{ display: flex; gap: 8px; margin-top: 8px; }
 button{
-  padding: 10px 14px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(255,255,255,.9), rgba(0,0,0,.02));
-  color: var(--text);
-  font-size: 13px;
-  cursor:pointer;
-  transition: transform var(--trans-fast), box-shadow var(--trans-fast), border-color var(--trans-fast), background var(--trans-fast);
+  height: 30px; padding: 0 10px;
+  border: 1px solid var(--line);
+  background: #fff; color: var(--ink);
+  border-radius: 8px; cursor: pointer;
 }
-button:hover{
-  transform: translateY(-1px);
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-2);
-  background: linear-gradient(180deg, rgba(255,255,255,1), rgba(0,0,0,.03));
-}
-button:active{ transform: translateY(0); }
-button:focus-visible{
-  outline: 2px solid var(--acc-2);
-  outline-offset: 2px;
-}
+button:active{ transform: translateY(1px); }
 
-.checkbox-group{
-  display:flex; align-items:center; gap:10px; margin: 10px 0;
-  color: var(--muted);
-}
-input[type="checkbox"]{
-  appearance:none; width:18px; height:18px; border-radius:6px;
-  border:1px solid var(--border);
-  background: rgba(255,255,255,.9);
-  display:grid; place-items:center;
-  transition: border-color var(--trans-fast), background var(--trans-fast);
-}
-input[type="checkbox"]::after{
-  content:"";
-  width:10px; height:10px; border-radius:3px;
-  transform: scale(0);
-  background: var(--acc);
-  transition: transform var(--trans-fast);
-}
-input[type="checkbox"]:checked{ border-color: rgba(0,184,148,.4); background: rgba(0,184,148,.08); }
-input[type="checkbox"]:checked::after{ transform: scale(1); }
-
-/* ===== Info Panel ========================================================= */
+/* 信息面板 */
 .info-title{
-  margin:0 0 var(--space-3);
-  font-weight:800; font-size:14px; letter-spacing:.1em;
-  color: #dc2626;
-  text-transform: uppercase;
+  font-size: 12px; color: var(--muted);
+  letter-spacing: .08em; text-transform: uppercase;
+  margin: 0 0 6px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 6px;
 }
 .info-item{
-  display:flex; justify-content:space-between; align-items:center;
-  padding: 8px 0; border-bottom: 1px dashed rgba(0,0,0,.06);
-  font-size: 13px; color: var(--muted);
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--line);
 }
 .info-item:last-child{ border-bottom: none; }
-
-.status-indicator{
-  width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:6px;
-  box-shadow: 0 0 8px currentColor;
-  vertical-align: middle;
+.dot{
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--ink); margin-right: 6px;
 }
-.status-good{ color: #10b981; background: currentColor; }
-.status-warning{ color: var(--warn); background: currentColor; }
-.status-error{ color: var(--err); background: currentColor; }
+.dot-ok{ background: #111827; }
+.dot-warn{ background: #a16207; }
+.dot-err{ background: #b91c1c; }
+.help{ margin-top: 8px; color: var(--muted); font-size: 12px; }
 
-/* ===== Responsive ========================================================= */
-@media (max-width: 900px){
-  .gui-panel{ left:16px; right:16px; min-width:0; }
-  .info-panel{ position:fixed; bottom:16px; top:auto; right:16px; left:auto; }
-}
-@media (max-width: 560px){
-  .gui-title{ font-size:18px; }
-  .info-panel{ max-width: unset; left:16px; right:16px; }
-}
-
-/* ===== Motion Preferences ================================================= */
-@media (prefers-reduced-motion: reduce){
-  *{ transition:none !important; animation:none !important; }
+/* 响应式 */
+@media (max-width: 720px){
+  .gui-panel{ left: 12px; right: 12px; width: auto; }
+  .info-panel{ right: 12px; left: auto; }
 }
