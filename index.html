@@ -6,17 +6,36 @@
     <meta name="description" content="Scissor Mechanism (minimal + free draw + anchor + laser SVG)" />
     <title>Scissor Mechanism · Anchor & Laser Export</title>
     <link rel="stylesheet" href="styles.css" />
-    <!-- p5.js with fallback -->
-    <script src="https://cdn.jsdelivr.net/npm/p5@1.7.0/lib/p5.min.js"></script>
+    <!-- 修复 p5.js 加载，使用更稳定的CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
     <script>
-      window.addEventListener('load', () => {
-        setTimeout(() => {
-          if (!window.p5) {
-            const alt = document.createElement('script');
-            alt.src = 'https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js';
-            document.head.appendChild(alt);
+      // 改进的 p5.js 加载检测
+      window.addEventListener('DOMContentLoaded', () => {
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        function checkP5() {
+          if (window.p5) {
+            console.log('p5.js loaded successfully');
+            return;
           }
-        }, 700);
+          
+          if (retryCount < maxRetries) {
+            retryCount++;
+            console.log(`Attempting to load p5.js backup (attempt ${retryCount})`);
+            const script = document.createElement('script');
+            script.src = `https://cdn.jsdelivr.net/npm/p5@1.7.0/lib/p5.min.js`;
+            script.onerror = () => {
+              console.error(`Failed to load p5.js (attempt ${retryCount})`);
+              if (retryCount >= maxRetries) {
+                alert('Failed to load p5.js library. Please refresh the page.');
+              }
+            };
+            document.head.appendChild(script);
+          }
+        }
+        
+        setTimeout(checkP5, 1000);
       });
     </script>
   </head>
@@ -141,11 +160,46 @@
       <div class="help">Wheel to zoom · Drag to pan · Free draw: drag on canvas · Anchor: toggle & click a node</div>
     </div>
 
-    <!-- scripts -->
-    <script src="curve.js"></script>
-    <script src="mechanism.js"></script>
-    <script src="gui.js"></script>
-    <script src="main.js"></script>
-    <script src="exporter.js"></script>
+    <!-- 确保脚本按正确顺序加载 -->
+    <script>
+      // 等待 p5.js 加载完成
+      function waitForP5(callback) {
+        if (window.p5) {
+          callback();
+        } else {
+          setTimeout(() => waitForP5(callback), 100);
+        }
+      }
+      
+      waitForP5(() => {
+        // 按顺序加载脚本
+        const scripts = ['curve.js', 'mechanism.js', 'gui.js', 'main.js', 'exporter.js'];
+        let loadedCount = 0;
+        
+        function loadScript(src) {
+          return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+          });
+        }
+        
+        async function loadAllScripts() {
+          try {
+            for (const script of scripts) {
+              await loadScript(script);
+              console.log(`Loaded: ${script}`);
+            }
+            console.log('All scripts loaded successfully');
+          } catch (error) {
+            console.error('Failed to load script:', error);
+          }
+        }
+        
+        loadAllScripts();
+      });
+    </script>
   </body>
 </html>
