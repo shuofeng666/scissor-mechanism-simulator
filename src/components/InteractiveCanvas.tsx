@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useCallback } from 'react';
 import { ImprovedScissorMechanism, Point } from '../lib/ScissorMechanism';
-import { ViewState, CanvasSize, ShowOptions, AnchorState, NodePickResult } from '../types';
+import { ViewState, CanvasSize, ShowOptions, AnchorState, NodePickResult, ManufacturingParams } from '../types';
 
 interface InteractiveCanvasProps {
   mechanism: ImprovedScissorMechanism;
@@ -17,34 +17,8 @@ interface InteractiveCanvasProps {
   anchorMode: boolean;
   isDrawing: boolean;
   setIsDrawing: (drawing: boolean) => void;
+  mfgParams: ManufacturingParams;
 }
-
-// 胶囊形状组件
-const CapsuleShape: React.FC<{ start: Point; end: Point; width: number }> = ({ start, end, width }) => {
-  const r = width / 2;
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-  const L = Math.hypot(dx, dy);
-  
-  if (L < 1e-6) return null;
-  
-  const ux = dx / L;
-  const uy = dy / L;
-  const nx = -uy;
-  const ny = ux;
-  
-  const a1 = { x: start.x + nx * r, y: start.y + ny * r };
-  const a2 = { x: end.x + nx * r, y: end.y + ny * r };
-  const b1 = { x: end.x - nx * r, y: end.y - ny * r };
-  const b2 = { x: start.x - nx * r, y: start.y - ny * r };
-  
-  return (
-    <path
-      d={`M ${a1.x} ${a1.y} L ${a2.x} ${a2.y} L ${b1.x} ${b1.y} L ${b2.x} ${b2.y} Z`}
-      fill="none"
-    />
-  );
-};
 
 export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
   mechanism,
@@ -58,7 +32,8 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
   setAnchor,
   anchorMode,
   isDrawing,
-  setIsDrawing
+  setIsDrawing,
+  mfgParams
 }) => {
   const canvasRef = useRef<SVGSVGElement>(null);
   const [isPanning, setIsPanning] = useState(false);
@@ -176,7 +151,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
       setLastMouse({ x, y });
       setIsDrawing(false);
     }
-  }, [anchorMode, pickNodeAt, setAnchor, mechanism.curveType, screenToModel, setIsDrawing]);
+  }, [anchorMode, pickNodeAt, setAnchor, mechanism, screenToModel, setIsDrawing]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -342,20 +317,97 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
 
           {/* 制造预览 */}
           {showOptions.showMfg && (
-            <g stroke="#d1d5db" strokeWidth={1 * viewState.scale} fill="none">
+            <g>
               {mechanism.links.map((link, idx) => {
                 if (!(link.start && link.end)) return null;
                 const startScreen = modelToScreen(link.start.x - mechanism.centerX, link.start.y - mechanism.centerY);
                 const endScreen = modelToScreen(link.end.x - mechanism.centerX, link.end.y - mechanism.centerY);
+                
+                // 计算连杆的胶囊形状
+                const linkLength = Math.hypot(endScreen.x - startScreen.x, endScreen.y - startScreen.y);
+                const linkWidthPx = mfgParams.linkWidth * viewState.scale; // 制造参数中的宽度转换为像素
+                const holeRadiusPx = (mfgParams.holeDia / 2) * viewState.scale; // 制造参数中的孔径转换为像素
+                
+                if (linkLength < 1) return null; // 避免零长度连杆
+                
+                const angle = Math.atan2(endScreen.y - startScreen.y, endScreen.x - startScreen.x);
+                const centerX = (startScreen.x + endScreen.x) / 2;
+                const centerY = (startScreen.y + endScreen.y) / 2;
+                
+                // 绘制胶囊形状（矩形 + 两个半圆）
+                const halfWidth = linkWidthPx / 2;
+                const halfLength = linkLength / 2;
+                
+                const cos = Math.cos(angle);
+                const sin = Math.sin(angle);
+                
+                // 四个矩形角点
+                const corners = [
+                  { x: centerX - halfLength * cos - halfWidth * sin, y: centerY - halfLength * sin + halfWidth * cos },
+                  { x: centerX + halfLength * cos - halfWidth * sin, y: centerY + halfLength * sin + halfWidth * cos },
+                  { x: centerX + halfLength * cos + halfWidth * sin, y: centerY + halfLength * sin - halfWidth * cos },
+                  { x: centerX - halfLength * cos + halfWidth * sin, y: centerY - halfLength * sin - halfWidth * cos }
+                ];
+                
                 return (
-                  <g key={idx}>
-                    <CapsuleShape 
-                      start={startScreen} 
-                      end={endScreen} 
-                      width={12 * viewState.scale} 
+                  <g key={`mfg-${idx}`}>
+                    {/* 主体矩形 */}
+                    <path
+                      d={`M ${corners[0].x} ${corners[0].y} L ${corners[1].x} ${corners[1].y} L ${corners[2].x} ${corners[2].y} L ${corners[3].x} ${corners[3].y} Z`}
+                      fill="rgba(239, 68, 68, 0.15)"
+                      stroke="#ef4444"
+                      strokeWidth="1"
                     />
-                    <circle cx={startScreen.x} cy={startScreen.y} r={2 * viewState.scale} />
-                    <circle cx={endScreen.x} cy={endScreen.y} r={2 * viewState.scale} />
+                    
+                    {/* 左端半圆 */}
+                    <circle 
+                      cx={startScreen.x} 
+                      cy={startScreen.y} 
+                      r={halfWidth}
+                      fill="rgba(239, 68, 68, 0.15)"
+                      stroke="#ef4444"
+                      strokeWidth="1"
+                    />
+                    
+                    {/* 右端半圆 */}
+                    <circle 
+                      cx={endScreen.x} 
+                      cy={endScreen.y} 
+                      r={halfWidth}
+                      fill="rgba(239, 68, 68, 0.15)"
+                      stroke="#ef4444"
+                      strokeWidth="1"
+                    />
+                    
+                    {/* 螺栓孔 */}
+                    <circle 
+                      cx={startScreen.x} 
+                      cy={startScreen.y} 
+                      r={holeRadiusPx}
+                      fill="white"
+                      stroke="#ef4444"
+                      strokeWidth="1"
+                    />
+                    <circle 
+                      cx={endScreen.x} 
+                      cy={endScreen.y} 
+                      r={holeRadiusPx}
+                      fill="white"
+                      stroke="#ef4444"
+                      strokeWidth="1"
+                    />
+                    
+                    {/* 中心线（可选，帮助对准） */}
+                    <line
+                      x1={startScreen.x}
+                      y1={startScreen.y}
+                      x2={endScreen.x}
+                      y2={endScreen.y}
+                      stroke="#ef4444"
+                      strokeWidth="0.5"
+                      strokeDasharray="2,2"
+                      opacity="0.5"
+                    />
                   </g>
                 );
               })}
