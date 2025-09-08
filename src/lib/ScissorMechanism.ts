@@ -356,4 +356,53 @@ export class ImprovedScissorMechanism {
       this.calculateGeometry(freeCurve);
     }
   }
+
+  // —— 在 ImprovedScissorMechanism 类内部末尾，加上 ——
+
+// 导出给物理世界用的图结构（id 对齐）
+toPhysicsGraph(): {
+  joints: { id: string; x: number; y: number }[];
+  rods: { a: string; b: string }[];
+} {
+  // joints：所有关节（不含 pivot，因为 pivot 是两杆交点，不是实际节点）
+  const joints = this.joints.map(j => ({ id: j.id, x: j.x, y: j.y }));
+  // rods：所有连杆（用 joint id 连接）
+  const rods = this.links
+    .filter(lk => lk.start && lk.end)
+    .map(lk => ({ a: lk.start.id, b: lk.end.id }));
+  return { joints, rods };
+}
+
+// 由物理结果回写坐标（id 匹配），然后只重算 pivots 和 trail，不重生 baseCurve
+applyPhysicsPositions(pos: Record<string, { x: number; y: number }>): void {
+  // 回写 joints
+  for (const j of this.joints) {
+    const p = pos[j.id];
+    if (p) { j.x = p.x; j.y = p.y; }
+  }
+  // 依据新 joints 重算 pivots（交点）与 links 的 pivot 引用
+  this.pivots.length = 0;
+  for (let i = 0; i < this.segments; i++) {
+    const LB = this.joints[i * 2];
+    const RB = this.joints[i * 2 + 1];
+    const LT = this.joints[(i + 1) * 2];
+    const RT = this.joints[(i + 1) * 2 + 1];
+    if (!(LB && RB && LT && RT)) continue;
+
+    const pv = this.lineIntersection(LB, RT, RB, LT);
+    if (!pv) continue;
+
+    const P = { x: pv.x, y: pv.y, segment: i, id: `P${i}`, link1: null as any, link2: null as any };
+    // 与 links 重绑
+    const link1 = this.links.find(l => l.id === `${LB.id}-${RT.id}`);
+    const link2 = this.links.find(l => l.id === `${RB.id}-${LT.id}`);
+    if (link1) link1.pivot = P;
+    if (link2) link2.pivot = P;
+
+    this.pivots.push(P as any);
+  }
+  // trail 更新
+  this.updateTrail();
+}
+
 }
