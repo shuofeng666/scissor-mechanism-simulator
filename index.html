@@ -1,127 +1,148 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="剪刀式机构模拟器（极简线稿 + 自由绘 + SVG 导出）" />
-    <title>剪刀式机构模拟器 · 激光切割导出</title>
+    <meta name="description" content="Scissor Mechanism (minimal line art + free draw + SVG export)" />
+    <title>Scissor Mechanism · Laser-cut Preview & Export</title>
     <link rel="stylesheet" href="styles.css" />
-    <!-- p5.js -->
+    <!-- p5.js (with fallbacks) -->
     <script src="https://cdn.jsdelivr.net/npm/p5@1.7.0/lib/p5.min.js"></script>
+    <script>
+      // simple fallback if the primary CDN is blocked
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          if (!window.p5) {
+            const alt = document.createElement('script');
+            alt.src = 'https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js';
+            document.head.appendChild(alt);
+            // show a tiny notice
+            const div = document.createElement('div');
+            div.style.position='fixed'; div.style.top='10px'; div.style.left='50%';
+            div.style.transform='translateX(-50%)'; div.style.padding='6px 10px';
+            div.style.background='#111'; div.style.color='#fff'; div.style.font='12px monospace';
+            div.style.borderRadius='6px'; div.textContent='Primary CDN failed. Using fallback...';
+            document.body.appendChild(div);
+            setTimeout(()=>div.remove(), 3000);
+          }
+        }, 700);
+      });
+    </script>
   </head>
   <body>
-    <!-- 左侧控制面板 -->
+    <!-- Left control panel -->
     <div class="gui-panel">
-      <h1 class="gui-title">剪刀式机构</h1>
+      <h1 class="gui-title">Scissor Mechanism</h1>
 
       <section class="section">
-        <div class="section-title">曲线</div>
+        <div class="section-title">Curve</div>
         <div class="curve-selector">
-          <button class="curve-btn active" data-curve="arc">圆弧</button>
-          <button class="curve-btn" data-curve="sine">正弦</button>
-          <button class="curve-btn" data-curve="free">自由绘</button>
+          <button class="curve-btn active" data-curve="arc">Arc</button>
+          <button class="curve-btn" data-curve="sine">Sine</button>
+          <button class="curve-btn" data-curve="free">Free draw</button>
         </div>
       </section>
 
       <section class="section">
-        <div class="section-title">基本参数</div>
+        <div class="section-title">Basic</div>
         <label class="slider-group">
           <div class="slider-label">
-            <span>机构段数</span><span id="segmentValue" class="value">4</span>
+            <span>Segments</span><span id="segmentValue" class="value">4</span>
           </div>
           <input type="range" id="segmentSlider" min="2" max="12" value="4" />
         </label>
 
         <label class="slider-group">
           <div class="slider-label">
-            <span>杆件长度</span><span id="linkLengthValue" class="value">60</span>
+            <span>Link length (px)</span><span id="linkLengthValue" class="value">60</span>
           </div>
           <input type="range" id="linkLengthSlider" min="30" max="120" value="60" />
         </label>
       </section>
 
       <section class="section">
-        <div class="section-title">曲线参数</div>
+        <div class="section-title">Curve Params</div>
         <label class="slider-group">
           <div class="slider-label">
-            <span>曲率强度</span><span id="curvatureValue" class="value">1.0</span>
+            <span>Curvature</span><span id="curvatureValue" class="value">1.0</span>
           </div>
           <input type="range" id="curvatureSlider" min="0.1" max="3.0" value="1.0" step="0.1" />
         </label>
 
         <label class="slider-group">
           <div class="slider-label">
-            <span>曲线长度</span><span id="lengthValue" class="value">300</span>
+            <span>Curve length (px)</span><span id="lengthValue" class="value">300</span>
           </div>
           <input type="range" id="lengthSlider" min="150" max="500" value="300" />
         </label>
       </section>
 
       <section class="section">
-        <div class="section-title">显示</div>
-        <label class="check"><input type="checkbox" id="showCurve" checked /> 显示基准曲线</label>
-        <label class="check"><input type="checkbox" id="showJoints" checked /> 显示关节</label>
-        <label class="check"><input type="checkbox" id="showPivots" checked /> 显示铰链</label>
-        <label class="check"><input type="checkbox" id="showTrail" /> 显示轨迹</label>
-        <label class="check"><input type="checkbox" id="showLabels" checked /> 显示编号</label>
+        <div class="section-title">Display</div>
+        <label class="check"><input type="checkbox" id="showCurve" checked /> Show base curve</label>
+        <label class="check"><input type="checkbox" id="showJoints" checked /> Show joints</label>
+        <label class="check"><input type="checkbox" id="showPivots" checked /> Show pivots</label>
+        <label class="check"><input type="checkbox" id="showTrail" /> Show trail</label>
+        <label class="check"><input type="checkbox" id="showLabels" checked /> Show labels</label>
+        <label class="check"><input type="checkbox" id="showMfg" checked /> Laser-cut preview</label>
       </section>
 
-      <!-- 制造/导出 -->
+      <!-- Manufacturing / Export -->
       <section class="section">
-        <div class="section-title">制造 / 导出（SVG for Laser）</div>
+        <div class="section-title">Manufacturing / Export (SVG)</div>
         <div class="grid2">
-          <label>连杆宽度 (mm)
+          <label>Link width (mm)
             <input type="number" id="lc_linkWidth" value="12" step="0.1" />
           </label>
-          <label>孔径 (mm)
+          <label>Hole Ø (mm)
             <input type="number" id="lc_holeDia" value="4" step="0.1" />
           </label>
-          <label>分组公差 (mm)
+          <label>Group tol (mm)
             <input type="number" id="lc_groupTol" value="0.1" step="0.05" />
           </label>
-          <label>件间距 (mm)
+          <label>Spacing (mm)
             <input type="number" id="lc_spacing" value="6" step="0.5" />
           </label>
           <label>px → mm
             <input type="number" id="lc_px2mm" value="1" step="0.01" />
           </label>
-          <label>描边宽度 (mm)
+          <label>Stroke (mm)
             <input type="number" id="lc_strokeW" value="0.1" step="0.05" />
           </label>
-          <label>kerf 简补 (mm)
+          <label>Kerf approx (mm)
             <input type="number" id="lc_kerf" value="0" step="0.05" />
           </label>
-          <label>每行件数
+          <label>Per row
             <input type="number" id="lc_perRow" value="8" step="1" min="1" />
           </label>
         </div>
         <div class="button-row">
-          <button id="btnExportSVG">导出 SVG</button>
+          <button id="btnExportSVG">Export SVG</button>
         </div>
-        <div class="help">说明：导出为“外轮廓 + 孔”的切割路径（红色描边，无填充）。长度自动分组并平铺。</div>
+        <div class="help">Note: export outlines (capsule) + two holes per link. Red stroke, no fill.</div>
       </section>
 
       <div class="button-row">
-        <button id="resetBtn">重置参数</button>
-        <button id="randomBtn">随机配置</button>
+        <button id="resetBtn">Reset</button>
+        <button id="randomBtn">Random</button>
       </div>
     </div>
 
-    <!-- 右上状态面板 -->
+    <!-- Top-right status -->
     <div class="info-panel">
-      <div class="info-title">状态</div>
-      <div class="info-item"><span>曲线:</span><span id="currentCurve">圆弧</span></div>
-      <div class="info-item"><span>段数:</span><span id="totalSegments">4</span></div>
-      <div class="info-item"><span>铰链:</span><span id="pivotCount">-</span></div>
-      <div class="info-item"><span>弧长:</span><span id="currentLength">-</span></div>
+      <div class="info-title">Status</div>
+      <div class="info-item"><span>Curve:</span><span id="currentCurve">Arc</span></div>
+      <div class="info-item"><span>Segments:</span><span id="totalSegments">4</span></div>
+      <div class="info-item"><span>Pivots:</span><span id="pivotCount">-</span></div>
+      <div class="info-item"><span>Arc length (px):</span><span id="currentLength">-</span></div>
       <div class="info-item">
-        <span>完整性:</span>
-        <span id="integrity"><span class="dot dot-ok"></span><span id="integrityText">良好</span></span>
+        <span>Integrity:</span>
+        <span id="integrity"><span class="dot dot-ok"></span><span id="integrityText">OK</span></span>
       </div>
-      <div class="help">滚轮缩放 · 拖拽平移 · Shift+R 重置视图 · 空格居中 · 自由绘：拖拽绘制</div>
+      <div class="help">Wheel to zoom · Drag to pan · Shift+R reset view · Space to center · Free draw: drag on canvas</div>
     </div>
 
-    <!-- 业务脚本（顺序很重要） -->
+    <!-- Scripts (order matters) -->
     <script src="curve.js"></script>
     <script src="mechanism.js"></script>
     <script src="gui.js"></script>

@@ -16,6 +16,7 @@ class GUI{
     this.$showPivots= document.getElementById('showPivots');
     this.$showTrail = document.getElementById('showTrail');
     this.$showLabels= document.getElementById('showLabels');
+    this.$showMfg   = document.getElementById('showMfg');
 
     this.$curName   = document.getElementById('currentCurve');
     this.$segNum    = document.getElementById('totalSegments');
@@ -65,21 +66,24 @@ class GUI{
       window.showPivots = this.$showPivots.checked;
       window.showTrail  = this.$showTrail.checked;
       window.showLabels = this.$showLabels.checked;
+      window.showMfg    = this.$showMfg.checked;
     };
-    [this.$showCurve, this.$showJoints, this.$showPivots, this.$showTrail, this.$showLabels].forEach(el=>el.addEventListener('change', onCheck));
+    [this.$showCurve, this.$showJoints, this.$showPivots, this.$showTrail, this.$showLabels, this.$showMfg]
+      .forEach(el=>el.addEventListener('change', onCheck));
   }
 
   updateDisplay(){
     const mech = window.curvedScissorMechanism;
     mech.update();
-    this.$curName.textContent = ({ arc:'圆弧', sine:'正弦', free:'自由绘' })[mech.curveType] || mech.curveType;
+    this.$curName.textContent = ({ arc:'Arc', sine:'Sine', free:'Free draw' })[mech.curveType] || mech.curveType;
 
     this.$segNum.textContent = mech.segments;
     this.$pivotCnt.textContent = mech.pivots.length;
     this.$lenNow.textContent = Math.round(mech.polylineArcLength());
 
     const integ = mech.getIntegrity();
-    this.$integText.textContent = integ.text;
+    const mapText = { good:'OK', warning:'Partial', error:'No pivot' };
+    this.$integText.textContent = mapText[integ.level] || 'OK';
     const dot = this.$integ.querySelector('.dot');
     dot.className = 'dot ' + (integ.level==='good'?'dot-ok':(integ.level==='warning'?'dot-warn':'dot-err'));
   }
@@ -101,12 +105,10 @@ class GUI{
     this.$showPivots.checked = true;
     this.$showTrail.checked  = false;
     this.$showLabels.checked = true;
+    this.$showMfg.checked    = true;
 
-    window.showCurve  = true;
-    window.showJoints = true;
-    window.showPivots = true;
-    window.showTrail  = false;
-    window.showLabels = true;
+    window.showCurve  = true; window.showJoints = true; window.showPivots = true;
+    window.showTrail  = false; window.showLabels = true; window.showMfg = true;
 
     window.curvedScissorMechanism.setParams({
       segments:4, linkLength:60, curvature:1.0, curveLength:300, curveType:'arc'

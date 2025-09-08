@@ -121,9 +121,75 @@ class ImprovedScissorMechanism {
     push();
     if(window.showCurve) this.drawBaseCurve();
     if(window.showTrail) this.drawTrail();
-    this.drawLinks();
+    this.drawLinks();                // thin-line schematic
     if(window.showJoints) this.drawJoints();
     if(window.showPivots) this.drawPivots();
+
+    // ---- Laser-cut preview (capsule + holes) ----
+    if (window.showMfg) {
+      const mm = +document.getElementById('lc_px2mm').value || 1;   // mm per px
+      const linkWmm = +document.getElementById('lc_linkWidth').value || 12;
+      const holeDmm = +document.getElementById('lc_holeDia').value || 4;
+      const kerf = +document.getElementById('lc_kerf').value || 0;
+      const Wpx = (linkWmm + kerf) / mm;   // convert mm->px
+      const Hpx = (holeDmm + kerf) / mm;
+      this.drawManufacturingPreview(Wpx, Hpx);
+    }
+    pop();
+  }
+
+   drawManufacturingPreview(linkWidthPx, holeDiaPx){
+    push();
+    noFill();
+    stroke(200);     // light gray preview
+    strokeWeight(1);
+    for(const lk of this.links){
+      if(!(lk.start && lk.end)) continue;
+      this._drawCapsule(lk.start, lk.end, linkWidthPx);
+      // holes
+      ellipse(lk.start.x, lk.start.y, holeDiaPx, holeDiaPx);
+      ellipse(lk.end.x,   lk.end.y,   holeDiaPx, holeDiaPx);
+    }
+    pop();
+  }
+
+  _drawCapsule(p1, p2, width){
+    const r = width/2;
+    const dx = p2.x - p1.x, dy = p2.y - p1.y;
+    const L  = Math.hypot(dx, dy);
+    if (L < 1e-6) return;
+
+    // local frame along the link
+    const ux = dx / L, uy = dy / L;
+    const nx = -uy, ny = ux;
+
+    // four corner points (outer rectangle edges)
+    const a1 = { x: p1.x + nx*r, y: p1.y + ny*r };
+    const a2 = { x: p2.x + nx*r, y: p2.y + ny*r };
+    const b1 = { x: p2.x - nx*r, y: p2.y - ny*r };
+    const b2 = { x: p1.x - nx*r, y: p1.y - ny*r };
+
+    // straight sides
+    beginShape();
+    vertex(a1.x, a1.y);
+    vertex(a2.x, a2.y);
+    vertex(b1.x, b1.y);
+    vertex(b2.x, b2.y);
+    endShape(CLOSE);
+
+    // end arcs (approximate with p5 arc)
+    push();
+    // arc at p2
+    translate(p2.x, p2.y);
+    rotate(Math.atan2(uy, ux));
+    arc(0, 0, width, width, -HALF_PI, HALF_PI);
+    pop();
+
+    push();
+    // arc at p1
+    translate(p1.x, p1.y);
+    rotate(Math.atan2(uy, ux));
+    arc(0, 0, width, width, HALF_PI, -HALF_PI);
     pop();
   }
 
