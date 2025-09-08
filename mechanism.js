@@ -1,4 +1,4 @@
-// 剪刀式机构几何与绘制
+// 剪刀式机构几何与绘制 - 简洁现代风格
 class ImprovedScissorMechanism {
   constructor(){
     this.segments   = 4;
@@ -77,7 +77,6 @@ class ImprovedScissorMechanism {
     return {x:-dy/L,y:dx/L};
   }
   updateTrail(){
-    // 读取全局 showTrail（在 main.js 中定义）
     if(!window.showTrail) return;
     if(this.joints.length>=2){
       const tops=this.joints.filter(j=>j.level===this.segments);
@@ -111,47 +110,143 @@ class ImprovedScissorMechanism {
     if(window.showPivots) this.drawPivots();
     pop();
   }
+  
   drawBaseCurve(){
     if(this.baseCurve.length<2) return;
-    noFill(); stroke(180,150,255,150); strokeWeight(2);
+    
+    push();
+    // 基准曲线 - 优雅的蓝色
+    noFill();
+    stroke(210, 70, 80); // 深蓝色
+    strokeWeight(3);
+    strokeCap(ROUND);
+    
     beginShape();
     for(const pt of this.baseCurve) vertex(this.centerX+pt.x,this.centerY+pt.y);
     endShape();
+    
+    // 端点标记
+    fill(210, 80, 90);
+    noStroke();
+    const start = this.baseCurve[0];
+    const end = this.baseCurve[this.baseCurve.length-1];
+    ellipse(this.centerX+start.x, this.centerY+start.y, 8);
+    ellipse(this.centerX+end.x, this.centerY+end.y, 8);
+    pop();
   }
+  
   drawLinks(){
     for(const lk of this.links){
       if(!(lk.start&&lk.end)) continue;
-      if(lk.type==='primary'){ stroke(120,200,255); strokeWeight(4); }
-      else{ stroke(300,200,255); strokeWeight(3); }
-      line(lk.start.x,lk.start.y,lk.end.x,lk.end.y);
-    }
-  }
-  drawJoints(){
-    for(const j of this.joints){
-      const hue=map(j.level,0,this.segments,60,180);
-      fill(hue,150,200); noStroke(); ellipse(j.x,j.y,8);
-      fill(255,255,255,180); textSize(10); textAlign(CENTER,CENTER); text(j.id,j.x,j.y-15);
-    }
-  }
-  drawPivots(){
-    for(const p of this.pivots){
-      push(); translate(p.x,p.y);
-      fill(0,0,50); stroke(0,0,200); strokeWeight(3); ellipse(0,0,24);
-      fill(0,0,100); stroke(0,0,255); strokeWeight(2); ellipse(0,0,16);
-      fill(30,200,255); noStroke(); ellipse(0,0,8);
-      stroke(255); strokeWeight(1); line(-4,0,4,0); line(0,-4,0,4);
-      fill(255); textSize(12); textAlign(CENTER,CENTER); text(p.id,0,20);
+      
+      push();
+      strokeCap(ROUND);
+      
+      if(lk.type==='primary'){ 
+        // 主杆 - 深色
+        stroke(0, 0, 25); 
+        strokeWeight(6);
+        line(lk.start.x,lk.start.y,lk.end.x,lk.end.y);
+      } else { 
+        // 次杆 - 稍浅
+        stroke(0, 0, 45); 
+        strokeWeight(4);
+        line(lk.start.x,lk.start.y,lk.end.x,lk.end.y);
+      }
       pop();
     }
   }
+  
+  drawJoints(){
+    for(const j of this.joints){
+      push();
+      translate(j.x, j.y);
+      
+      // 渐变色彩
+      const hue = map(j.level, 0, this.segments, 30, 60); // 橙到黄绿
+      
+      // 外圈
+      fill(hue, 60, 85);
+      stroke(hue, 80, 65);
+      strokeWeight(2);
+      ellipse(0, 0, 12);
+      
+      // 内圈
+      fill(hue, 40, 95);
+      noStroke();
+      ellipse(0, 0, 6);
+      
+      // 标签
+      fill(0, 0, 30);
+      textSize(10);
+      textAlign(CENTER, CENTER);
+      text(j.id, 0, -18);
+      pop();
+    }
+  }
+  
+  drawPivots(){
+    for(const p of this.pivots){
+      push(); 
+      translate(p.x,p.y);
+      
+      // 外圈
+      fill(0, 0, 90);
+      stroke(0, 0, 30);
+      strokeWeight(3);
+      ellipse(0, 0, 24);
+      
+      // 中圈
+      fill(0, 0, 20);
+      noStroke();
+      ellipse(0, 0, 16);
+      
+      // 内圈 - 红色核心
+      fill(0, 80, 85);
+      ellipse(0, 0, 8);
+      
+      // 十字标记
+      stroke(0, 0, 100);
+      strokeWeight(2);
+      line(-6, 0, 6, 0);
+      line(0, -6, 0, 6);
+      
+      // 标签
+      fill(0, 0, 20);
+      textSize(12);
+      textAlign(CENTER, CENTER);
+      text(p.id, 0, 20);
+      pop();
+    }
+  }
+  
   drawTrail(){
     if(this.trailPoints.length<2) return;
+    
+    push();
     noFill();
+    strokeCap(ROUND);
+    
     for(let i=1;i<this.trailPoints.length;i++){
       const a=this.trailPoints[i-1], b=this.trailPoints[i];
-      const alpha=map(i, 0, this.trailPoints.length-1, 25, 204);
-      const hue=map(i,0,this.trailPoints.length-1,240,300);
-      stroke(hue,180,255,alpha); strokeWeight(2); line(a.x,a.y,b.x,b.y);
+      const progress = i / (this.trailPoints.length-1);
+      
+      const alpha = map(progress, 0, 1, 20, 200);
+      const weight = map(progress, 0, 1, 1, 4);
+      const hue = map(progress, 0, 1, 280, 320); // 紫到品红
+      
+      stroke(hue, 70, 85, alpha);
+      strokeWeight(weight);
+      line(a.x, a.y, b.x, b.y);
     }
+    
+    // 轨迹头部
+    if(this.trailPoints.length > 0) {
+      const head = this.trailPoints[this.trailPoints.length-1];
+      fill(320, 80, 95);
+      noStroke();
+      ellipse(head.x, head.y, 8);
+    }
+    pop();
   }
 }
