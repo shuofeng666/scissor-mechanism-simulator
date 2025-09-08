@@ -1,23 +1,236 @@
-body{margin:0;font-family:'Arial',sans-serif;background:linear-gradient(135deg,#0a0a2e,#16213e,#0f3460);color:#fff;overflow:hidden}
-.gui-panel{position:absolute;top:20px;left:20px;background:rgba(0,0,0,.9);padding:25px;border-radius:15px;border:2px solid #00ffaa;min-width:320px;z-index:1000;backdrop-filter:blur(15px);box-shadow:0 0 30px rgba(0,255,170,.3)}
-.gui-title{font-size:28px;font-weight:bold;margin-bottom:25px;color:#00ffaa;text-shadow:0 0 20px rgba(0,255,170,.6);text-align:center}
-.section{margin-bottom:25px;padding:15px;background:rgba(255,255,255,.05);border-radius:10px;border-left:3px solid #00ffaa}
-.section-title{font-size:16px;color:#00ffaa;margin-bottom:15px;font-weight:bold}
-.slider-group{margin-bottom:18px}
-.slider-label{font-size:14px;margin-bottom:8px;color:#ddd;display:flex;justify-content:space-between}
-.slider{width:100%;margin-bottom:5px;accent-color:#00ffaa;background:rgba(255,255,255,.1);border-radius:10px;height:6px}
-.curve-selector{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:15px}
-.curve-btn{padding:8px 12px;background:rgba(255,255,255,.1);color:#fff;border:1px solid #555;border-radius:8px;cursor:pointer;transition:.3s;font-size:11px;flex:1;min-width:60px;text-align:center}
-.curve-btn.active{background:linear-gradient(45deg,#00ffaa,#00ccaa);border-color:#00ffaa;color:#000;font-weight:bold}
-.curve-btn:hover{background:rgba(0,255,170,.3);border-color:#00ffaa}
-.button-group{display:flex;gap:10px;margin:20px 0;flex-wrap:wrap}
-button{padding:12px 16px;background:linear-gradient(45deg,#333,#555);color:#fff;border:none;border-radius:8px;cursor:pointer;transition:.3s;font-size:12px;border:1px solid rgba(255,255,255,.2)}
-button:hover{background:linear-gradient(45deg,#00ffaa,#00ccaa);color:#000;transform:translateY(-2px);box-shadow:0 4px 15px rgba(0,255,170,.4)}
-.checkbox-group{margin:15px 0;display:flex;align-items:center;gap:10px}
-input[type="checkbox"]{accent-color:#00ffaa;transform:scale(1.2)}
-.info-panel{position:absolute;top:20px;right:20px;background:rgba(0,0,0,.9);padding:20px;border-radius:15px;border:2px solid #ff6b6b;font-size:13px;max-width:280px;backdrop-filter:blur(15px);box-shadow:0 0 30px rgba(255,107,107,.3)}
-.info-title{color:#ff6b6b;font-weight:bold;margin-bottom:15px;font-size:18px;text-shadow:0 0 10px rgba(255,107,107,.5)}
-.info-item{margin:10px 0;display:flex;justify-content:space-between;align-items:center}
-.status-indicator{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px}
-.status-good{background:#00ff88}.status-warning{background:#ffaa00}.status-error{background:#ff4444}
-.value-display{color:#00ffaa;font-weight:bold}
+/* ===== Theme Tokens ======================================================= */
+:root{
+  --bg-1: #fafbfc;          /* 背景基色 - 浅灰白 */
+  --bg-2: #f4f6f8;          /* 面板底色 - 更浅的灰 */
+  --glass: rgba(255,255,255,.85);
+  --border: rgba(0,0,0,.08);
+  --border-strong: rgba(0,0,0,.15);
+  --text: #1a202c;          /* 深色文字 */
+  --muted: #4a5568;         /* 较浅的文字 */
+
+  --acc: #00b894;           /* 主强调色（柔和的青绿） */
+  --acc-2: #0984e3;         /* 次强调：蓝色 */
+  --warn: #f39c12;
+  --err: #e74c3c;
+
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-sm: 10px;
+
+  --shadow-1: 0 10px 30px rgba(0,0,0,.12);
+  --shadow-2: 0 6px 18px rgba(0,0,0,.08);
+
+  --space-1: 8px;
+  --space-2: 12px;
+  --space-3: 16px;
+  --space-4: 20px;
+  --space-5: 24px;
+
+  --trans-fast: 160ms;
+  --trans-slow: 260ms;
+}
+
+/* ===== Base =============================================================== */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  color: var(--text);
+  background:
+    radial-gradient(1200px 1200px at 85% -10%, rgba(0,184,148,.08) 0%, transparent 60%),
+    radial-gradient(900px 900px at -10% 80%, rgba(9,132,227,.08) 0%, transparent 55%),
+    linear-gradient(135deg, #ffffff 0%, #f8fafc 60%, #f1f5f9 100%);
+  overflow:hidden;
+}
+
+/* 细网格背景（更淡更细） */
+body::before{
+  content:"";
+  position:fixed; inset:0;
+  background-image:
+    linear-gradient(to right, rgba(0,0,0,.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0,0,0,.02) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(70% 70% at 50% 50%, #000 60%, transparent 100%);
+  pointer-events:none;
+}
+
+/* ===== Panels ============================================================= */
+.gui-panel, .info-panel{
+  position:absolute;
+  background: linear-gradient(to bottom right, var(--glass), rgba(255,255,255,.95));
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+}
+
+.gui-panel{
+  top:20px; left:20px; min-width:320px;
+  padding: var(--space-5);
+}
+
+.info-panel{
+  top:20px; right:20px; max-width:300px;
+  padding: var(--space-4);
+  border-color: var(--border-strong);
+}
+
+/* ===== Titles & Sections ================================================== */
+.gui-title{
+  margin:0 0 var(--space-5);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing:.3px;
+  color: var(--text);
+  display:flex; align-items:center; gap:10px;
+}
+.gui-title::before{
+  content:"";
+  width:10px; height:10px; border-radius:50%;
+  background: radial-gradient(circle at 30% 30%, #fff, var(--acc));
+  box-shadow: 0 0 20px var(--acc);
+}
+
+.section{
+  background: rgba(0,0,0,.02);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.section-title{
+  font-size:13px; font-weight:700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing:.12em;
+  margin-bottom: var(--space-3);
+}
+
+/* ===== Controls =========================================================== */
+.slider-group{ margin-bottom: var(--space-3); }
+.slider-label{
+  display:flex; justify-content:space-between; align-items:center;
+  font-size:13px; color: var(--muted);
+  margin-bottom: 6px;
+}
+.value-display{ color: var(--acc); font-weight:700; }
+
+.slider{
+  width:100%; height:6px; border-radius: 999px;
+  appearance:none; background: rgba(0,0,0,.08);
+  outline:none;
+}
+.slider::-webkit-slider-thumb{
+  appearance:none; width:16px; height:16px; border-radius:50%;
+  background: var(--acc);
+  border: 2px solid rgba(255,255,255,.9);
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  transition: transform var(--trans-fast);
+}
+.slider:active::-webkit-slider-thumb{ transform: scale(1.06); }
+
+.curve-selector{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom: var(--space-2); }
+.curve-btn{
+  flex:1 1 64px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(0,0,0,.02);
+  color: var(--text);
+  font-size: 12px; cursor:pointer;
+  transition: background var(--trans-fast), border-color var(--trans-fast), transform var(--trans-fast);
+}
+.curve-btn:hover{ background: rgba(0,0,0,.05); border-color: var(--border-strong); transform: translateY(-1px); }
+.curve-btn.active{
+  background: linear-gradient(180deg, rgba(0,184,148,.18), rgba(0,184,148,.08));
+  border-color: rgba(0,184,148,.3);
+  color: #065f46;
+  font-weight:700;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 4px 12px rgba(0,184,148,.15);
+}
+
+.button-group{ display:flex; gap:10px; margin: var(--space-4) 0 var(--space-2); flex-wrap:wrap; }
+button{
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255,255,255,.9), rgba(0,0,0,.02));
+  color: var(--text);
+  font-size: 13px;
+  cursor:pointer;
+  transition: transform var(--trans-fast), box-shadow var(--trans-fast), border-color var(--trans-fast), background var(--trans-fast);
+}
+button:hover{
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-2);
+  background: linear-gradient(180deg, rgba(255,255,255,1), rgba(0,0,0,.03));
+}
+button:active{ transform: translateY(0); }
+button:focus-visible{
+  outline: 2px solid var(--acc-2);
+  outline-offset: 2px;
+}
+
+.checkbox-group{
+  display:flex; align-items:center; gap:10px; margin: 10px 0;
+  color: var(--muted);
+}
+input[type="checkbox"]{
+  appearance:none; width:18px; height:18px; border-radius:6px;
+  border:1px solid var(--border);
+  background: rgba(255,255,255,.9);
+  display:grid; place-items:center;
+  transition: border-color var(--trans-fast), background var(--trans-fast);
+}
+input[type="checkbox"]::after{
+  content:"";
+  width:10px; height:10px; border-radius:3px;
+  transform: scale(0);
+  background: var(--acc);
+  transition: transform var(--trans-fast);
+}
+input[type="checkbox"]:checked{ border-color: rgba(0,184,148,.4); background: rgba(0,184,148,.08); }
+input[type="checkbox"]:checked::after{ transform: scale(1); }
+
+/* ===== Info Panel ========================================================= */
+.info-title{
+  margin:0 0 var(--space-3);
+  font-weight:800; font-size:14px; letter-spacing:.1em;
+  color: #dc2626;
+  text-transform: uppercase;
+}
+.info-item{
+  display:flex; justify-content:space-between; align-items:center;
+  padding: 8px 0; border-bottom: 1px dashed rgba(0,0,0,.06);
+  font-size: 13px; color: var(--muted);
+}
+.info-item:last-child{ border-bottom: none; }
+
+.status-indicator{
+  width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:6px;
+  box-shadow: 0 0 8px currentColor;
+  vertical-align: middle;
+}
+.status-good{ color: #10b981; background: currentColor; }
+.status-warning{ color: var(--warn); background: currentColor; }
+.status-error{ color: var(--err); background: currentColor; }
+
+/* ===== Responsive ========================================================= */
+@media (max-width: 900px){
+  .gui-panel{ left:16px; right:16px; min-width:0; }
+  .info-panel{ position:fixed; bottom:16px; top:auto; right:16px; left:auto; }
+}
+@media (max-width: 560px){
+  .gui-title{ font-size:18px; }
+  .info-panel{ max-width: unset; left:16px; right:16px; }
+}
+
+/* ===== Motion Preferences ================================================= */
+@media (prefers-reduced-motion: reduce){
+  *{ transition:none !important; animation:none !important; }
+}
