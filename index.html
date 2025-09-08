@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="剪刀式机构模拟器（极简线稿 + 自由绘）" />
-    <title>剪刀式机构模拟器 · 极简线稿</title>
+    <meta name="description" content="剪刀式机构模拟器（极简线稿 + 自由绘 + SVG 导出）" />
+    <title>剪刀式机构模拟器 · 激光切割导出</title>
     <link rel="stylesheet" href="styles.css" />
     <!-- p5.js -->
     <script src="https://cdn.jsdelivr.net/npm/p5@1.7.0/lib/p5.min.js"></script>
@@ -66,6 +66,41 @@
         <label class="check"><input type="checkbox" id="showLabels" checked /> 显示编号</label>
       </section>
 
+      <!-- 制造/导出 -->
+      <section class="section">
+        <div class="section-title">制造 / 导出（SVG for Laser）</div>
+        <div class="grid2">
+          <label>连杆宽度 (mm)
+            <input type="number" id="lc_linkWidth" value="12" step="0.1" />
+          </label>
+          <label>孔径 (mm)
+            <input type="number" id="lc_holeDia" value="4" step="0.1" />
+          </label>
+          <label>分组公差 (mm)
+            <input type="number" id="lc_groupTol" value="0.1" step="0.05" />
+          </label>
+          <label>件间距 (mm)
+            <input type="number" id="lc_spacing" value="6" step="0.5" />
+          </label>
+          <label>px → mm
+            <input type="number" id="lc_px2mm" value="1" step="0.01" />
+          </label>
+          <label>描边宽度 (mm)
+            <input type="number" id="lc_strokeW" value="0.1" step="0.05" />
+          </label>
+          <label>kerf 简补 (mm)
+            <input type="number" id="lc_kerf" value="0" step="0.05" />
+          </label>
+          <label>每行件数
+            <input type="number" id="lc_perRow" value="8" step="1" min="1" />
+          </label>
+        </div>
+        <div class="button-row">
+          <button id="btnExportSVG">导出 SVG</button>
+        </div>
+        <div class="help">说明：导出为“外轮廓 + 孔”的切割路径（红色描边，无填充）。长度自动分组并平铺。</div>
+      </section>
+
       <div class="button-row">
         <button id="resetBtn">重置参数</button>
         <button id="randomBtn">随机配置</button>
@@ -91,5 +126,6 @@
     <script src="mechanism.js"></script>
     <script src="gui.js"></script>
     <script src="main.js"></script>
+    <script src="exporter.js"></script>
   </body>
 </html>

@@ -1,4 +1,3 @@
-// 连接 DOM 控件与机制参数（极简逻辑）
 class GUI{
   constructor(){
     this.$curveBtns = Array.from(document.querySelectorAll('.curve-btn'));
@@ -27,6 +26,7 @@ class GUI{
 
     document.getElementById('resetBtn').addEventListener('click', () => this.reset());
     document.getElementById('randomBtn').addEventListener('click', () => this.randomize());
+    document.getElementById('btnExportSVG').addEventListener('click', () => exportLinksToSVG());
 
     this.bind();
   }
@@ -57,9 +57,7 @@ class GUI{
       });
       this.updateDisplay();
     };
-    [this.$segment, this.$linkLen, this.$curv, this.$len].forEach(el=>{
-      el.addEventListener('input', onRange);
-    });
+    [this.$segment, this.$linkLen, this.$curv, this.$len].forEach(el=>el.addEventListener('input', onRange));
 
     const onCheck = () => {
       window.showCurve  = this.$showCurve.checked;
@@ -68,17 +66,13 @@ class GUI{
       window.showTrail  = this.$showTrail.checked;
       window.showLabels = this.$showLabels.checked;
     };
-    [this.$showCurve, this.$showJoints, this.$showPivots, this.$showTrail, this.$showLabels].forEach(el=>{
-      el.addEventListener('change', onCheck);
-    });
+    [this.$showCurve, this.$showJoints, this.$showPivots, this.$showTrail, this.$showLabels].forEach(el=>el.addEventListener('change', onCheck));
   }
 
   updateDisplay(){
     const mech = window.curvedScissorMechanism;
     mech.update();
-    this.$curName.textContent = ({
-      arc:'圆弧', sine:'正弦', free:'自由绘'
-    })[mech.curveType] || mech.curveType;
+    this.$curName.textContent = ({ arc:'圆弧', sine:'正弦', free:'自由绘' })[mech.curveType] || mech.curveType;
 
     this.$segNum.textContent = mech.segments;
     this.$pivotCnt.textContent = mech.pivots.length;

@@ -1,4 +1,4 @@
-// 极简线稿版剪刀机构（支持 free 曲线 & 编号）
+// 极简线稿剪刀机构（支持 free 曲线 & 编号）
 class ImprovedScissorMechanism {
   constructor(){
     this.segments   = 4;
@@ -10,11 +10,10 @@ class ImprovedScissorMechanism {
     this.centerX = 0; this.centerY = 0;
     this.joints = []; this.links = []; this.pivots = [];
     this.trailPoints = []; this.baseCurve = [];
-    this._dirty = true; // 参数改动时重算
+    this._dirty = true;
   }
 
   setCenter(x,y){ this.centerX = x; this.centerY = y; this._dirty = true; }
-
   setParams({segments, linkLength, curvature, curveLength, curveType}){
     if(segments      !== undefined) this.segments    = segments|0;
     if(linkLength    !== undefined) this.linkLength  = +linkLength;
@@ -41,7 +40,6 @@ class ImprovedScissorMechanism {
     this.baseCurve = this.generateBaseCurve();
     if(!this.baseCurve.length) return;
 
-    // 逐段投影并生成左右关节
     for(let i=0;i<=this.segments;i++){
       const t = i / this.segments;
       const idx = Math.floor(t * (this.baseCurve.length - 1));
@@ -54,7 +52,6 @@ class ImprovedScissorMechanism {
       this.joints.push(L, R);
     }
 
-    // 交叉连杆与中间铰链
     for(let i=0;i<this.segments;i++){
       const LB=this.joints[i*2], RB=this.joints[i*2+1];
       const LT=this.joints[(i+1)*2], RT=this.joints[(i+1)*2+1];
@@ -119,7 +116,7 @@ class ImprovedScissorMechanism {
 
   update(){ if(this._dirty) this.calculateGeometry(); }
 
-  /* ===== 绘制（极简线稿） ===== */
+  // ===== 绘制（极简线稿） =====
   draw(){
     push();
     if(window.showCurve) this.drawBaseCurve();
@@ -133,76 +130,44 @@ class ImprovedScissorMechanism {
   drawBaseCurve(){
     if(this.baseCurve.length<2) return;
     push();
-    noFill();
-    stroke(156); // #9ca3af
-    strokeWeight(1);
-    drawingContext.setLineDash([5,4]);
-    beginShape();
-    for(const pt of this.baseCurve) vertex(this.centerX+pt.x, this.centerY+pt.y);
-    endShape();
-    drawingContext.setLineDash([]);
-    pop();
+    noFill(); stroke(156); strokeWeight(1); drawingContext.setLineDash([5,4]);
+    beginShape(); for(const pt of this.baseCurve) vertex(this.centerX+pt.x, this.centerY+pt.y); endShape();
+    drawingContext.setLineDash([]); pop();
   }
 
   drawLinks(){
-    push();
-    stroke(17); // #111827
-    strokeWeight(1.5);
-    strokeCap(ROUND);
-    for(const lk of this.links){
-      if(!(lk.start && lk.end)) continue;
-      line(lk.start.x, lk.start.y, lk.end.x, lk.end.y);
-    }
+    push(); stroke(17); strokeWeight(1.5); strokeCap(ROUND);
+    for(const lk of this.links){ if(lk.start&&lk.end) line(lk.start.x,lk.start.y,lk.end.x,lk.end.y); }
     pop();
   }
 
   drawJoints(){
-    push();
-    noFill();
-    stroke(17);
-    strokeWeight(1.5);
+    push(); noFill(); stroke(17); strokeWeight(1.5);
     for(const j of this.joints){
-      ellipse(j.x, j.y, 8, 8); // 空心小圆
+      ellipse(j.x, j.y, 8, 8);
       if(window.showLabels){
-        noStroke(); fill(80);
-        textSize(10);
+        noStroke(); fill(80); textSize(10);
         textFont('ui-monospace, SFMono-Regular, Menlo, Consolas, monospace');
-        textAlign(LEFT, BOTTOM);
-        text(j.id, j.x + 6, j.y - 6);
+        textAlign(LEFT,BOTTOM); text(j.id, j.x+6, j.y-6);
       }
-    }
-    pop();
+    } pop();
   }
 
   drawPivots(){
-    push();
-    noFill();
-    stroke(17);
-    strokeWeight(1.5);
+    push(); noFill(); stroke(17); strokeWeight(1.5);
     for(const p of this.pivots){
-      ellipse(p.x, p.y, 12, 12);
-      line(p.x-6, p.y, p.x+6, p.y);
-      line(p.x, p.y-6, p.x, p.y+6);
+      ellipse(p.x,p.y,12,12); line(p.x-6,p.y,p.x+6,p.y); line(p.x,p.y-6,p.x,p.y+6);
       if(window.showLabels){
-        noStroke(); fill(80);
-        textSize(11);
+        noStroke(); fill(80); textSize(11);
         textFont('ui-monospace, SFMono-Regular, Menlo, Consolas, monospace');
-        textAlign(LEFT, TOP);
-        text(p.id, p.x + 8, p.y + 8);
+        textAlign(LEFT,TOP); text(p.id, p.x+8, p.y+8);
       }
-    }
-    pop();
+    } pop();
   }
 
   drawTrail(){
     if(this.trailPoints.length<2) return;
-    push();
-    noFill();
-    stroke(80); // 中灰
-    strokeWeight(1);
-    beginShape();
-    for(const q of this.trailPoints) vertex(q.x, q.y);
-    endShape();
-    pop();
+    push(); noFill(); stroke(80); strokeWeight(1);
+    beginShape(); for(const q of this.trailPoints) vertex(q.x,q.y); endShape(); pop();
   }
 }

@@ -11,17 +11,13 @@ window.showTrail  = false;
 window.showLabels = true;
 
 // 自由绘曲线（相对中心坐标）
-window.freeCurve = [];     // 机构读取的曲线
-let isDrawingFree = false; // 是否正在自由绘
-let freeRaw = [];          // 原始鼠标轨迹（相对中心）
+window.freeCurve = [];
+let isDrawingFree = false;
+let freeRaw = [];
 
 // 视图
-let viewScale = 1.0;
-let viewOffsetX = 0;
-let viewOffsetY = 0;
-let isDragging = false;
-let lastMouseX = 0;
-let lastMouseY = 0;
+let viewScale = 1.0, viewOffsetX = 0, viewOffsetY = 0;
+let isDragging = false, lastMouseX = 0, lastMouseY = 0;
 
 function setup(){
   canvas = createCanvas(windowWidth, windowHeight);
@@ -38,66 +34,50 @@ function draw(){
   background('#ffffff');
   drawGrid();
 
-  // 视图变换（机构绘制）
   push();
   translate(width/2 + viewOffsetX, height/2 + viewOffsetY);
   scale(viewScale);
   translate(-width/2, -height/2);
-
   window.curvedScissorMechanism.update();
   window.curvedScissorMechanism.draw();
   pop();
 
-  // 自由绘中的屏幕层预览
   if (window.currentCurveType === 'free' && isDrawingFree && freeRaw.length >= 2) {
-    push();
-    noFill(); stroke(80); strokeWeight(1);
-    drawingContext.setLineDash([4,3]);
+    push(); noFill(); stroke(80); strokeWeight(1); drawingContext.setLineDash([4,3]);
     beginShape();
     for (const p of freeRaw) {
       const sx = p.x * viewScale + (width/2 + viewOffsetX);
       const sy = p.y * viewScale + (height/2 + viewOffsetY);
       vertex(sx, sy);
     }
-    endShape();
-    drawingContext.setLineDash([]);
-    pop();
+    endShape(); drawingContext.setLineDash([]); pop();
   }
 
   drawHUD();
 }
 
 function drawGrid(){
-  push();
-  stroke(229, 231, 235); // #e5e7eb
-  strokeWeight(1);
-  for(let x=0; x<=width; x+=48) line(x, 0, x, height);
-  for(let y=0; y<=height; y+=48) line(0, y, width, y);
+  push(); stroke(229,231,235); strokeWeight(1);
+  for(let x=0;x<=width;x+=48) line(x,0,x,height);
+  for(let y=0;y<=height;y+=48) line(0,y,width,y);
   pop();
 }
 
 function drawHUD(){
   const txt = [];
-  if (window.currentCurveType === 'free') {
-    txt.push(isDrawingFree ? 'Free drawing…' : 'Free: drag to draw');
-  }
+  if (window.currentCurveType === 'free') txt.push(isDrawingFree ? 'Free drawing…' : 'Free: drag to draw');
   txt.push(`FPS ${nf(frameRate(),2,1)}`);
   txt.push(`Scale ${(viewScale*100).toFixed(0)}%`);
   txt.push(`Offset ${viewOffsetX.toFixed(0)}, ${viewOffsetY.toFixed(0)}`);
-
-  push();
-  fill(17); noStroke(); textSize(11);
-  let x = width-160, y = height-62;
+  push(); fill(17); noStroke(); textSize(11);
+  let x = width-170, y = height-62;
   for(let i=0;i<txt.length;i++) text(txt[i], x, y+i*14);
   pop();
 }
 
-function windowResized(){
-  resizeCanvas(windowWidth, windowHeight);
-  window.curvedScissorMechanism.setCenter(width/2, height/2);
-}
+function windowResized(){ resizeCanvas(windowWidth, windowHeight); window.curvedScissorMechanism.setCenter(width/2, height/2); }
 
-// ===== 坐标与几何工具 =====
+// 坐标/几何工具
 function screenToModelRelative(mx, my){
   const x1 = mx - (width/2 + viewOffsetX);
   const y1 = my - (height/2 + viewOffsetY);
@@ -129,112 +109,70 @@ function simplifyRDP(points, epsilon){
 function resampleByStep(points, step=2){
   if(points.length<2) return points.slice();
   const acc=[0];
-  for(let i=1;i<points.length;i++){
-    acc[i] = acc[i-1] + Math.hypot(points[i].x - points[i-1].x, points[i].y - points[i-1].y);
-  }
-  const total = acc[acc.length-1];
-  if(total === 0) return points.slice();
+  for(let i=1;i<points.length;i++) acc[i] = acc[i-1] + Math.hypot(points[i].x - points[i-1].x, points[i].y - points[i-1].y);
+  const total = acc[acc.length-1]; if(total===0) return points.slice();
   const out = [];
-  for(let s=0; s<=total; s+=step){
+  for(let s=0;s<=total;s+=step){
     let j=1; while(j<acc.length && acc[j]<s) j++;
     const t = (s - acc[j-1]) / (acc[j] - acc[j-1] || 1);
     const a=points[j-1], b=points[j];
     out.push({ x: a.x + (b.x-a.x)*t, y: a.y + (b.y-a.y)*t });
   }
-  out.push(points[points.length-1]);
-  return out;
+  out.push(points[points.length-1]); return out;
 }
 
-// ===== 键盘 =====
+// 键盘
 function keyPressed(){
   switch(key){
-    case 'p': case 'P':
-      window.showPivots = !window.showPivots;
-      document.getElementById('showPivots').checked = window.showPivots; break;
-    case 'j': case 'J':
-      window.showJoints = !window.showJoints;
-      document.getElementById('showJoints').checked = window.showJoints; break;
-    case 'l': case 'L':
-      window.showLabels = !window.showLabels;
-      document.getElementById('showLabels').checked = window.showLabels; break;
-    case 'c': case 'C':
-      window.showCurve = !window.showCurve;
-      document.getElementById('showCurve').checked = window.showCurve; break;
+    case 'p': case 'P': window.showPivots=!window.showPivots; document.getElementById('showPivots').checked=window.showPivots; break;
+    case 'j': case 'J': window.showJoints=!window.showJoints; document.getElementById('showJoints').checked=window.showJoints; break;
+    case 'l': case 'L': window.showLabels=!window.showLabels; document.getElementById('showLabels').checked=window.showLabels; break;
+    case 'c': case 'C': window.showCurve=!window.showCurve; document.getElementById('showCurve').checked=window.showCurve; break;
     case 't': case 'T':
-      window.showTrail = !window.showTrail;
-      document.getElementById('showTrail').checked = window.showTrail;
-      if(!window.showTrail) window.curvedScissorMechanism.trailPoints = [];
-      break;
+      window.showTrail=!window.showTrail; document.getElementById('showTrail').checked=window.showTrail;
+      if(!window.showTrail) window.curvedScissorMechanism.trailPoints = []; break;
     case '1': document.querySelector('[data-curve="arc"]').click(); break;
     case '2': document.querySelector('[data-curve="sine"]').click(); break;
     case '3': document.querySelector('[data-curve="free"]').click(); break;
-    case 'r': case 'R':
-      if(keyIsDown(SHIFT)) resetView(); else window.gui.reset();
-      break;
-    case ' ':
-      centerView(); break;
+    case 'r': case 'R': if(keyIsDown(SHIFT)) resetView(); else window.gui.reset(); break;
+    case ' ': centerView(); break;
   }
 }
 
-// ===== 鼠标交互 =====
-function mouseWheel(e){
-  e.preventDefault();
-  if(mouseX<0||mouseX>width||mouseY<0||mouseY>height) return false;
-  const s = (e.delta<0) ? 1.1 : 1/1.1;
-  viewScale = constrain(viewScale * s, 0.2, 5);
-  return false;
-}
-
+// 鼠标
+function mouseWheel(e){ e.preventDefault(); if(mouseX<0||mouseX>width||mouseY<0||mouseY>height) return false; viewScale=constrain(viewScale*((e.delta<0)?1.1:1/1.1),0.2,5); return false; }
 function mousePressed(){
   const inCanvas = mouseX>=0 && mouseX<=width && mouseY>=0 && mouseY<=height;
-  const leftPanel = mouseX<=352 && mouseY<=520;
+  const leftPanel = mouseX<=352 && mouseY<=720;
   const rightPanel= mouseX>=width-280 && mouseY<=360;
-
   if (!inCanvas || leftPanel || rightPanel) return;
 
   if (window.currentCurveType === 'free') {
-    // 开始自由绘（禁用平移）
-    isDrawingFree = true;
-    freeRaw = [];
-    const p = screenToModelRelative(mouseX, mouseY);
-    freeRaw.push(p);
-    isDragging = false;
+    isDrawingFree = true; freeRaw = [];
+    const p = screenToModelRelative(mouseX, mouseY); freeRaw.push(p); isDragging=false;
   } else {
-    // 普通视图平移
     isDragging = true; lastMouseX=mouseX; lastMouseY=mouseY;
   }
 }
-
 function mouseDragged(){
   if (isDrawingFree && window.currentCurveType === 'free') {
     const p = screenToModelRelative(mouseX, mouseY);
     const last = freeRaw[freeRaw.length-1];
-    if (!last || Math.hypot(p.x-last.x, p.y-last.y) > 1.5) {
-      freeRaw.push(p);
-    }
+    if (!last || Math.hypot(p.x-last.x, p.y-last.y) > 1.5) freeRaw.push(p);
   } else if (isDragging) {
-    viewOffsetX += mouseX-lastMouseX;
-    viewOffsetY += mouseY-lastMouseY;
-    lastMouseX = mouseX; lastMouseY = mouseY;
+    viewOffsetX += mouseX-lastMouseX; viewOffsetY += mouseY-lastMouseY; lastMouseX=mouseX; lastMouseY=mouseY;
   }
 }
-
 function mouseReleased(){
   if (isDrawingFree && window.currentCurveType === 'free') {
     isDrawingFree = false;
     if (freeRaw.length >= 2) {
-      // 自适应简化阈值（按包围盒）
-      const bbox = freeRaw.reduce((b,p)=>({
-        minx: Math.min(b.minx,p.x), miny: Math.min(b.miny,p.y),
-        maxx: Math.max(b.maxx,p.x), maxy: Math.max(b.maxy,p.y)
-      }), {minx:Infinity, miny:Infinity, maxx:-Infinity, maxy:-Infinity});
+      const bbox = freeRaw.reduce((b,p)=>({minx:Math.min(b.minx,p.x),miny:Math.min(b.miny,p.y),maxx:Math.max(b.maxx,p.x),maxy:Math.max(b.maxy,p.y)}), {minx:Infinity,miny:Infinity,maxx:-Infinity,maxy:-Infinity});
       const span = Math.max(bbox.maxx-bbox.minx, bbox.maxy-bbox.miny);
-      const eps = Math.max(0.8, span * 0.01); // 1% 或 0.8px
-
+      const eps = Math.max(0.8, span * 0.01);
       const simplified = simplifyRDP(freeRaw, eps);
-      const resampled  = resampleByStep(simplified, 2); // 2px 均匀采样
+      const resampled  = resampleByStep(simplified, 2);
       window.freeCurve = resampled;
-
       window.curvedScissorMechanism.setParams({ curveType: 'free' });
       window.gui.updateDisplay();
     }
