@@ -20,7 +20,7 @@
     "visualization",
     "mechanical-engineering"
   ],
-  "author": "Your Name",
+  "author": "shuofeng666",
   "license": "MIT",
   "dependencies": {
     "compression": "^1.8.1",
@@ -37,9 +37,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/scissor-mechanism-simulator.git"
+    "url": "https://github.com/shuofeng666/scissor-mechanism-simulator.git"
   },
-  "homepage": "https://yourusername.github.io/scissor-mechanism-simulator",
+  "homepage": "https://shuofeng666.github.io/scissor-mechanism-simulator",
   "engines": {
     "node": ">=14.0.0"
   }
