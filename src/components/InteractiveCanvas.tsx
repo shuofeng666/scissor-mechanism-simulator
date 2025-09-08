@@ -1,3 +1,4 @@
+// 修复 InteractiveCanvas.tsx 中的问题
 'use client';
 
 import React, { useRef, useState, useCallback } from 'react';
@@ -25,6 +26,7 @@ const CapsuleShape: React.FC<{ start: Point; end: Point; width: number }> = ({ s
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const L = Math.hypot(dx, dy);
+  
   if (L < 1e-6) return null;
   
   const ux = dx / L;
@@ -79,18 +81,23 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
 
   // 节点拾取
   const pickNodeAt = useCallback((sx: number, sy: number): NodePickResult | null => {
-    const R_pivot = 12, R_joint = 10;
+    const R_pivot = 12;
+    const R_joint = 10;
     
+    // 检查支点
     for (const p of mechanism.pivots) {
       const sp = modelToScreen(p.x, p.y);
-      if (Math.hypot(sp.x - sx, sp.y - sy) <= R_pivot)
+      if (Math.hypot(sp.x - sx, sp.y - sy) <= R_pivot) {
         return { id: p.id, type: 'pivot', world: { x: sp.x, y: sp.y } };
+      }
     }
     
+    // 检查关节
     for (const j of mechanism.joints) {
       const sp = modelToScreen(j.x, j.y);
-      if (Math.hypot(sp.x - sx, sp.y - sy) <= R_joint)
+      if (Math.hypot(sp.x - sx, sp.y - sy) <= R_joint) {
         return { id: j.id, type: 'joint', world: { x: sp.x, y: sp.y } };
+      }
     }
     
     return null;
@@ -98,22 +105,29 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
 
   // RDP 简化算法
   const simplifyRDP = useCallback((points: Point[], epsilon: number): Point[] => {
-    if (points.length < 3) return points.slice();
+    if (points.length < 3) return [...points];
     
-    const a = points[0], b = points[points.length - 1];
-    const A = b.y - a.y, B = a.x - b.x, C = b.x * a.y - a.x * b.y;
-    let dmax = -1, idx = -1;
+    const a = points[0];
+    const b = points[points.length - 1];
+    const A = b.y - a.y;
+    const B = a.x - b.x;
+    const C = b.x * a.y - a.x * b.y;
+    let dmax = -1;
+    let idx = -1;
     
     for (let i = 1; i < points.length - 1; i++) {
       const p = points[i];
       const d = Math.abs(A * p.x + B * p.y + C) / Math.hypot(A, B);
-      if (d > dmax) { dmax = d; idx = i; }
+      if (d > dmax) { 
+        dmax = d; 
+        idx = i; 
+      }
     }
     
-    if (dmax > epsilon) {
+    if (dmax > epsilon && idx > 0) {
       const res1 = simplifyRDP(points.slice(0, idx + 1), epsilon);
       const res2 = simplifyRDP(points.slice(idx), epsilon);
-      return res1.slice(0, -1).concat(res2);
+      return [...res1.slice(0, -1), ...res2];
     } else {
       return [points[0], points[points.length - 1]];
     }
@@ -121,8 +135,10 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
 
   // 鼠标事件处理
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
+    
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
@@ -146,8 +162,10 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
   }, [anchorMode, pickNodeAt, setAnchor, mechanism.curveType, screenToModelRelative, setIsDrawing]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
+    
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
@@ -195,6 +213,12 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
     }));
   }, [setViewState]);
 
+  // 生成路径字符串的辅助函数
+  const generatePathD = useCallback((points: Point[]): string => {
+    if (points.length === 0) return '';
+    return `M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`;
+  }, []);
+
   return (
     <div className="relative">
       <svg
@@ -215,9 +239,10 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
           {/* 基础曲线 */}
           {showOptions.showCurve && mechanism.baseCurve.length > 1 && (
             <path
-              d={`M ${mechanism.baseCurve.map(p => 
-                `${mechanism.centerX + p.x},${mechanism.centerY + p.y}`
-              ).join(' L ')}`}
+              d={generatePathD(mechanism.baseCurve.map(p => ({
+                x: mechanism.centerX + p.x,
+                y: mechanism.centerY + p.y
+              })))}
               stroke="#9ca3af"
               strokeWidth="1"
               strokeDasharray="5,4"
@@ -228,7 +253,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
           {/* 轨迹 */}
           {showOptions.showTrail && mechanism.trailPoints.length > 1 && (
             <path
-              d={`M ${mechanism.trailPoints.map(p => `${p.x},${p.y}`).join(' L ')}`}
+              d={generatePathD(mechanism.trailPoints)}
               stroke="#6b7280"
               strokeWidth="1"
               fill="none"
@@ -236,8 +261,9 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
           )}
 
           {/* 连杆 */}
-          {mechanism.links.map((link, idx) => (
-            link.start && link.end && (
+          {mechanism.links.map((link, idx) => {
+            if (!(link.start && link.end)) return null;
+            return (
               <line
                 key={idx}
                 x1={link.start.x}
@@ -248,14 +274,15 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                 strokeWidth="2"
                 strokeLinecap="round"
               />
-            )
-          ))}
+            );
+          })}
 
           {/* 制造预览 */}
           {showOptions.showMfg && (
             <g stroke="#d1d5db" strokeWidth="1" fill="none">
-              {mechanism.links.map((link, idx) => (
-                link.start && link.end && (
+              {mechanism.links.map((link, idx) => {
+                if (!(link.start && link.end)) return null;
+                return (
                   <g key={idx}>
                     <CapsuleShape 
                       start={link.start} 
@@ -265,8 +292,8 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                     <circle cx={link.start.x} cy={link.start.y} r="2" />
                     <circle cx={link.end.x} cy={link.end.y} r="2" />
                   </g>
-                )
-              ))}
+                );
+              })}
             </g>
           )}
 
@@ -339,9 +366,10 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
           {/* 绘制中的自由曲线 */}
           {isDrawing && drawingPoints.length > 1 && (
             <path
-              d={`M ${drawingPoints.map(p => 
-                `${p.x * viewState.scale + (canvasSize.width / 2 + viewState.offsetX)},${p.y * viewState.scale + (canvasSize.height / 2 + viewState.offsetY)}`
-              ).join(' L ')}`}
+              d={generatePathD(drawingPoints.map(p => ({
+                x: p.x * viewState.scale + (canvasSize.width / 2 + viewState.offsetX),
+                y: p.y * viewState.scale + (canvasSize.height / 2 + viewState.offsetY)
+              })))}
               stroke="#6b7280"
               strokeWidth="1"
               strokeDasharray="4,3"

@@ -1,10 +1,10 @@
 // 曲线生成器
 export const CurveGenerator = {
-  generateArc(len = 300, k = 1.0) {
+  generateArc(len = 300, k = 1.0): Point[] {
     const n = 200;
     const R = Math.max(1, len / Math.PI);
     const s = k;
-    const pts = [];
+    const pts: Point[] = [];
     for (let i = 0; i <= n; i++) {
       const t = i / n;
       const th = Math.PI * t;
@@ -15,10 +15,10 @@ export const CurveGenerator = {
     return pts;
   },
   
-  generateSine(len = 300, amp = 1.0) {
+  generateSine(len = 300, amp = 1.0): Point[] {
     const n = 400;
     const A = (len / 6) * amp * 0.5;
-    const pts = [];
+    const pts: Point[] = [];
     for (let i = 0; i <= n; i++) {
       const t = i / n;
       const x = (t - 0.5) * len;
@@ -90,24 +90,24 @@ export class ImprovedScissorMechanism {
     this._dirty = true;
   }
 
-  setCenter(x: number, y: number) {
+  setCenter(x: number, y: number): void {
     this.centerX = x;
     this.centerY = y;
     this._dirty = true;
   }
 
-  setParams({ segments, linkLength, curvature, curveLength, curveType }: {
+  setParams(params: {
     segments?: number;
     linkLength?: number;
     curvature?: number;
     curveLength?: number;
     curveType?: string;
-  }) {
-    if (segments !== undefined) this.segments = segments | 0;
-    if (linkLength !== undefined) this.linkLength = +linkLength;
-    if (curvature !== undefined) this.curvature = +curvature;
-    if (curveLength !== undefined) this.curveLength = +curveLength;
-    if (curveType !== undefined) this.curveType = curveType;
+  }): void {
+    if (params.segments !== undefined) this.segments = Math.floor(params.segments);
+    if (params.linkLength !== undefined) this.linkLength = Number(params.linkLength);
+    if (params.curvature !== undefined) this.curvature = Number(params.curvature);
+    if (params.curveLength !== undefined) this.curveLength = Number(params.curveLength);
+    if (params.curveType !== undefined) this.curveType = params.curveType;
     this._dirty = true;
   }
 
@@ -115,7 +115,7 @@ export class ImprovedScissorMechanism {
     switch (this.curveType) {
       case 'free':
         return (Array.isArray(freeCurve) && freeCurve.length >= 2)
-          ? freeCurve.slice()
+          ? [...freeCurve]
           : CurveGenerator.generateArc(this.curveLength, this.curvature);
       case 'sine':
         return CurveGenerator.generateSine(this.curveLength, this.curvature);
@@ -125,13 +125,16 @@ export class ImprovedScissorMechanism {
     }
   }
 
-  calculateGeometry(freeCurve: Point[] | null = null) {
+  // 修复计算几何方法的类型安全
+  calculateGeometry(freeCurve: Point[] | null = null): void {
     this.joints.length = 0;
     this.links.length = 0;
     this.pivots.length = 0;
     this.baseCurve = this.generateBaseCurve(freeCurve);
+    
     if (!this.baseCurve.length) return;
 
+    // 生成关节点
     for (let i = 0; i <= this.segments; i++) {
       const t = i / this.segments;
       const idx = Math.floor(t * (this.baseCurve.length - 1));
@@ -156,15 +159,25 @@ export class ImprovedScissorMechanism {
       this.joints.push(L, R);
     }
 
+    // 生成支点和连杆
     for (let i = 0; i < this.segments; i++) {
-      const LB = this.joints[i * 2], RB = this.joints[i * 2 + 1];
-      const LT = this.joints[(i + 1) * 2], RT = this.joints[(i + 1) * 2 + 1];
+      const LB = this.joints[i * 2];
+      const RB = this.joints[i * 2 + 1];
+      const LT = this.joints[(i + 1) * 2];
+      const RT = this.joints[(i + 1) * 2 + 1];
+      
       if (!(LB && RB && LT && RT)) continue;
 
       const p = this.lineIntersection(LB, RT, RB, LT);
       if (!p) continue;
       
-      const P: Pivot = { x: p.x, y: p.y, segment: i, id: `P${i}`, links: [] };
+      const P: Pivot = { 
+        x: p.x, 
+        y: p.y, 
+        segment: i, 
+        id: `P${i}`, 
+        links: [] 
+      };
       this.pivots.push(P);
 
       const link1: Link = { start: LB, end: P, type: 'a', id: `${LB.id}-${P.id}` };
@@ -181,21 +194,31 @@ export class ImprovedScissorMechanism {
   }
 
   lineIntersection(p1: Point, p2: Point, p3: Point, p4: Point): Point | null {
-    const x1 = p1.x, y1 = p1.y, x2 = p2.x, y2 = p2.y, x3 = p3.x, y3 = p3.y, x4 = p4.x, y4 = p4.y;
+    const x1 = p1.x, y1 = p1.y;
+    const x2 = p2.x, y2 = p2.y;
+    const x3 = p3.x, y3 = p3.y;
+    const x4 = p4.x, y4 = p4.y;
+    
     const d = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
     if (Math.abs(d) < 1e-6) return null;
+    
     const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / d;
-    return { x: x1 + t * (x2 - x1), y: y1 + t * (y2 - y1) };
+    return { 
+      x: x1 + t * (x2 - x1), 
+      y: y1 + t * (y2 - y1) 
+    };
   }
 
   normalAt(idx: number): Point {
     const a = this.baseCurve[Math.max(0, idx - 1)];
     const b = this.baseCurve[Math.min(this.baseCurve.length - 1, idx + 1)];
-    const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1;
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const L = Math.hypot(dx, dy) || 1;
     return { x: -dy / L, y: dx / L };
   }
 
-  updateTrail() {
+  updateTrail(): void {
     const tops = this.joints.filter(j => j.level === this.segments);
     if (tops.length >= 2) {
       const m: TrailPoint = { 
@@ -204,14 +227,17 @@ export class ImprovedScissorMechanism {
         t: Date.now() 
       };
       this.trailPoints.push(m);
-      if (this.trailPoints.length > 180) this.trailPoints.shift();
+      if (this.trailPoints.length > 180) {
+        this.trailPoints.shift();
+      }
     }
   }
 
   polylineArcLength(): number {
     let L = 0;
     for (let i = 1; i < this.baseCurve.length; i++) {
-      const a = this.baseCurve[i - 1], b = this.baseCurve[i];
+      const a = this.baseCurve[i - 1];
+      const b = this.baseCurve[i];
       L += Math.hypot(b.x - a.x, b.y - a.y);
     }
     return L;
@@ -229,7 +255,9 @@ export class ImprovedScissorMechanism {
     this.centerX += dx; this.centerY += dy;
   }
 
-  update(freeCurve: Point[] | null = null) {
-    if (this._dirty) this.calculateGeometry(freeCurve);
+  update(freeCurve: Point[] | null = null): void {
+    if (this._dirty) {
+      this.calculateGeometry(freeCurve);
+    }
   }
 }
