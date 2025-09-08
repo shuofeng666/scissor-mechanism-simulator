@@ -3,27 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Scissor Mechanism (minimal line art + free draw + SVG export)" />
-    <title>Scissor Mechanism · Laser-cut Preview & Export</title>
+    <meta name="description" content="Scissor Mechanism (minimal + free draw + anchor + laser SVG)" />
+    <title>Scissor Mechanism · Anchor & Laser Export</title>
     <link rel="stylesheet" href="styles.css" />
-    <!-- p5.js (with fallbacks) -->
+    <!-- p5.js with fallback -->
     <script src="https://cdn.jsdelivr.net/npm/p5@1.7.0/lib/p5.min.js"></script>
     <script>
-      // simple fallback if the primary CDN is blocked
       window.addEventListener('load', () => {
         setTimeout(() => {
           if (!window.p5) {
             const alt = document.createElement('script');
             alt.src = 'https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js';
             document.head.appendChild(alt);
-            // show a tiny notice
-            const div = document.createElement('div');
-            div.style.position='fixed'; div.style.top='10px'; div.style.left='50%';
-            div.style.transform='translateX(-50%)'; div.style.padding='6px 10px';
-            div.style.background='#111'; div.style.color='#fff'; div.style.font='12px monospace';
-            div.style.borderRadius='6px'; div.textContent='Primary CDN failed. Using fallback...';
-            document.body.appendChild(div);
-            setTimeout(()=>div.remove(), 3000);
           }
         }, 700);
       });
@@ -87,7 +78,15 @@
         <label class="check"><input type="checkbox" id="showMfg" checked /> Laser-cut preview</label>
       </section>
 
-      <!-- Manufacturing / Export -->
+      <section class="section">
+        <div class="section-title">Anchor</div>
+        <label class="check"><input type="checkbox" id="anchorMode" /> Anchor mode (click a pivot/joint)</label>
+        <div class="button-row">
+          <button id="btnClearAnchor">Clear anchor</button>
+        </div>
+        <div class="help">Anchored: <span id="anchorLabel">none</span></div>
+      </section>
+
       <section class="section">
         <div class="section-title">Manufacturing / Export (SVG)</div>
         <div class="grid2">
@@ -119,7 +118,7 @@
         <div class="button-row">
           <button id="btnExportSVG">Export SVG</button>
         </div>
-        <div class="help">Note: export outlines (capsule) + two holes per link. Red stroke, no fill.</div>
+        <div class="help">Export outlines (capsule) + two holes per link. Red stroke, no fill.</div>
       </section>
 
       <div class="button-row">
@@ -139,10 +138,10 @@
         <span>Integrity:</span>
         <span id="integrity"><span class="dot dot-ok"></span><span id="integrityText">OK</span></span>
       </div>
-      <div class="help">Wheel to zoom · Drag to pan · Shift+R reset view · Space to center · Free draw: drag on canvas</div>
+      <div class="help">Wheel to zoom · Drag to pan · Free draw: drag on canvas · Anchor: toggle & click a node</div>
     </div>
 
-    <!-- Scripts (order matters) -->
+    <!-- scripts -->
     <script src="curve.js"></script>
     <script src="mechanism.js"></script>
     <script src="gui.js"></script>

@@ -1,4 +1,4 @@
-// 基准曲线（圆弧 / 正弦）
+// Base curves (Arc / Sine). Points are relative to mechanism center.
 const CurveGenerator = {
   generateArc(len = 300, k = 1.0) {
     const n = 200;

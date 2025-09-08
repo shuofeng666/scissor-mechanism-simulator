@@ -25,9 +25,22 @@ class GUI{
     this.$integ     = document.getElementById('integrity');
     this.$integText = document.getElementById('integrityText');
 
+    // Anchor UI
+    this.$anchorMode = document.getElementById('anchorMode');
+    this.$anchorLabel= document.getElementById('anchorLabel');
+    document.getElementById('btnClearAnchor').addEventListener('click', () => {
+      window.anchor = { id:null, world:null };
+      this.$anchorMode.checked = false;
+      window.anchorMode = false;
+      this.updateAnchorLabel();
+    });
+
+    // Export
+    document.getElementById('btnExportSVG').addEventListener('click', () => exportLinksToSVG());
+
+    // Reset & Random
     document.getElementById('resetBtn').addEventListener('click', () => this.reset());
     document.getElementById('randomBtn').addEventListener('click', () => this.randomize());
-    document.getElementById('btnExportSVG').addEventListener('click', () => exportLinksToSVG());
 
     this.bind();
   }
@@ -70,13 +83,20 @@ class GUI{
     };
     [this.$showCurve, this.$showJoints, this.$showPivots, this.$showTrail, this.$showLabels, this.$showMfg]
       .forEach(el=>el.addEventListener('change', onCheck));
+
+    this.$anchorMode.addEventListener('change', ()=>{
+      window.anchorMode = this.$anchorMode.checked;
+    });
+  }
+
+  updateAnchorLabel(){
+    this.$anchorLabel.textContent = window.anchor?.id || 'none';
   }
 
   updateDisplay(){
     const mech = window.curvedScissorMechanism;
     mech.update();
     this.$curName.textContent = ({ arc:'Arc', sine:'Sine', free:'Free draw' })[mech.curveType] || mech.curveType;
-
     this.$segNum.textContent = mech.segments;
     this.$pivotCnt.textContent = mech.pivots.length;
     this.$lenNow.textContent = Math.round(mech.polylineArcLength());
@@ -86,6 +106,8 @@ class GUI{
     this.$integText.textContent = mapText[integ.level] || 'OK';
     const dot = this.$integ.querySelector('.dot');
     dot.className = 'dot ' + (integ.level==='good'?'dot-ok':(integ.level==='warning'?'dot-warn':'dot-err'));
+
+    this.updateAnchorLabel();
   }
 
   reset(){
@@ -109,6 +131,11 @@ class GUI{
 
     window.showCurve  = true; window.showJoints = true; window.showPivots = true;
     window.showTrail  = false; window.showLabels = true; window.showMfg = true;
+
+    window.anchorMode = false;
+    window.anchor = { id:null, world:null };
+    this.$anchorMode.checked = false;
+    this.updateAnchorLabel();
 
     window.curvedScissorMechanism.setParams({
       segments:4, linkLength:60, curvature:1.0, curveLength:300, curveType:'arc'
