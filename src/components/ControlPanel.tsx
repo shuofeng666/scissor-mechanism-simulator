@@ -16,6 +16,7 @@ interface ControlPanelProps {
   onReset: () => void;
   onRandomize: () => void;
   onExportSVG: () => void;
+  onShake: () => void;
   mechanism: ImprovedScissorMechanism;
   physicsEnabled: boolean;
   setPhysicsEnabled: (enabled: boolean) => void;
@@ -33,6 +34,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   onReset,
   onRandomize,
   onExportSVG,
+  onShake,
   mechanism,
   physicsEnabled,
   setPhysicsEnabled
@@ -41,7 +43,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     <div className="absolute top-4 left-4 w-80 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-4 space-y-4 max-h-[90vh] overflow-y-auto">
       <h1 className="text-lg font-bold text-gray-900">Scissor Mechanism</h1>
       
-      {/* 物理模拟开关 */}
+      {/* 🚀 物理模拟开关 */}
       <div className="space-y-2">
         <h3 className="text-xs font-medium text-gray-600 uppercase tracking-wide">Physics</h3>
         <label className="flex items-center space-x-2 text-sm">
@@ -56,16 +58,11 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           </span>
         </label>
         {physicsEnabled && (
-          <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded space-y-1">
+          <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded space-y-2">
             <div>🎯 Physics mode: Use anchor to pin joints and watch the chain react to gravity!</div>
             <button
-              onClick={() => {
-                // 添加随机扰动
-                if (typeof (window as any).physicsAdapter?.addRandomImpulse === 'function') {
-                  (window as any).physicsAdapter.addRandomImpulse();
-                }
-              }}
-              className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded"
+              onClick={onShake}
+              className="w-full px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded font-medium"
             >
               🌊 Shake Chain
             </button>

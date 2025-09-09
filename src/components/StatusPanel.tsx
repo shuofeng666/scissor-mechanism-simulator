@@ -16,7 +16,7 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({ mechanism, physicsEnab
       <div className="space-y-1 text-xs">
         <div className="font-medium text-gray-900">Status</div>
         
-        {/* 物理状态 */}
+        {/* 🚀 物理状态 */}
         <div className="flex items-center space-x-1">
           <span className="text-gray-600">Mode:</span>
           <span className={`inline-flex items-center space-x-1 ${

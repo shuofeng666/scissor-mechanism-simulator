@@ -1,10 +1,9 @@
-// src/components/ScissorMechanismApp.tsx
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ImprovedScissorMechanism, Point } from '../lib/ScissorMechanism';
 import { exportLinksToSVG, downloadSVG } from '../lib/svgExporter';
-import { SimplePhysicsAdapter } from '../lib/physics/simplePhysics';
+import { FixedPhysicsAdapter } from '../lib/physics/FixedPhysicsAdapter';
 import {
   MechanismParams,
   ShowOptions,
@@ -31,7 +30,7 @@ export default function ScissorMechanismApp() {
   const mechanism = mechanismRef.current;
 
   // 物理适配器
-  const physicsRef = useRef<SimplePhysicsAdapter | null>(null);
+  const physicsRef = useRef<FixedPhysicsAdapter | null>(null);
   const animationRef = useRef<number>();
 
   // 画布尺寸
@@ -42,7 +41,7 @@ export default function ScissorMechanismApp() {
     return DEFAULT_CANVAS_SIZE;
   });
 
-  // 参数 & 显示
+  // 机构参数
   const [params, setParams] = useState<MechanismParams>({
     segments: 4,
     linkLength: 60,
@@ -51,13 +50,14 @@ export default function ScissorMechanismApp() {
     curveType: 'arc',
   });
 
+  // 显示选项
   const [showOptions, setShowOptions] = useState<ShowOptions>({
     showCurve: true,
     showJoints: true,
     showPivots: true,
     showTrail: false,
     showLabels: true,
-    showMfg: true, // 默认启用彩色制造预览
+    showMfg: true, // 默认显示彩色制造预览
   });
 
   // 视图状态
@@ -67,7 +67,7 @@ export default function ScissorMechanismApp() {
     offsetY: 0,
   });
 
-  // 自由曲线 & 锚点 & 模式
+  // 交互状态
   const [freeCurve, setFreeCurve] = useState<Point[]>([]);
   const [anchor, setAnchor] = useState<AnchorState>({ id: null, world: null });
   const [anchorMode, setAnchorMode] = useState(false);
@@ -86,41 +86,40 @@ export default function ScissorMechanismApp() {
     perRow: 8,
   });
 
-  // 尺寸变更或参数变化时，更新几何
+  // 画布尺寸变化处理
   useEffect(() => {
-    const mech = mechanism;
-    if (!mech) return;
-
-    const updateSize = () => {
+    const handleResize = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
       setCanvasSize({ width: w, height: h });
-      mech.setCenter(w / 2, h / 2);
-      mech.setParams(params);
-      mech.update(freeCurve.length > 0 ? freeCurve : null);
+      mechanism.setCenter(w / 2, h / 2);
     };
 
-    updateSize();
-    window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
-  }, [params, freeCurve, mechanism]);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [mechanism]);
 
+  // 机构参数变化时更新几何
   useEffect(() => {
-    const mech = mechanism;
-    if (!mech) return;
-    mech.setParams(params);
-    mech.update(freeCurve.length > 0 ? freeCurve : null);
-  }, [params, freeCurve, mechanism]);
+    mechanism.setParams(params);
+    mechanism.update(freeCurve.length > 0 ? freeCurve : null);
+    
+    // 如果物理模拟启用，重建物理世界
+    if (physicsEnabled && physicsRef.current) {
+      physicsRef.current.rebuild();
+    }
+  }, [params, freeCurve, physicsEnabled, mechanism]);
 
   // 物理模拟开关
   useEffect(() => {
     if (physicsEnabled) {
-      // 启用物理
+      // 启用物理模拟
       physicsRef.current?.destroy();
-      physicsRef.current = new SimplePhysicsAdapter(mechanism, {
+      physicsRef.current = new FixedPhysicsAdapter(mechanism, {
         gravity: true,
-        stiffness: 0.8,
-        damping: 0.05
+        stiffness: 0.9,
+        damping: 0.02
       });
 
       // 如果有锚点，设置它
@@ -128,15 +127,22 @@ export default function ScissorMechanismApp() {
         physicsRef.current.setAnchor(anchor.id);
       }
 
-      // 启动动画循环
+      // 添加初始扰动
+      setTimeout(() => {
+        physicsRef.current?.addRandomImpulse();
+      }, 500);
+
+      // 启动连续更新循环
       const animate = () => {
-        physicsRef.current?.update();
-        animationRef.current = requestAnimationFrame(animate);
+        if (physicsRef.current) {
+          physicsRef.current.updateMechanism();
+          animationRef.current = requestAnimationFrame(animate);
+        }
       };
       animate();
 
     } else {
-      // 关闭物理
+      // 关闭物理模拟
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
@@ -161,7 +167,7 @@ export default function ScissorMechanismApp() {
     }
   }, [anchor]);
 
-  // 重置
+  // 重置功能
   const handleReset = useCallback(() => {
     // 清理物理
     if (animationRef.current) {
@@ -170,10 +176,11 @@ export default function ScissorMechanismApp() {
     physicsRef.current?.destroy();
     physicsRef.current = null;
 
-    // 重新创建机制实例
+    // 重新创建机制
     mechanismRef.current = new ImprovedScissorMechanism();
     const mech = mechanismRef.current;
 
+    // 重置所有状态
     setParams({
       segments: 4,
       linkLength: 60,
@@ -187,7 +194,7 @@ export default function ScissorMechanismApp() {
       showPivots: true,
       showTrail: false,
       showLabels: true,
-      showMfg: false,
+      showMfg: true,
     });
     setViewState({ scale: 1.0, offsetX: 0, offsetY: 0 });
     setFreeCurve([]);
@@ -196,6 +203,7 @@ export default function ScissorMechanismApp() {
     setIsDrawing(false);
     setPhysicsEnabled(false);
 
+    // 初始化机制
     if (mech) {
       mech.setCenter(canvasSize.width / 2, canvasSize.height / 2);
       mech.setParams({
@@ -209,7 +217,7 @@ export default function ScissorMechanismApp() {
     }
   }, [canvasSize]);
 
-  // 随机化
+  // 随机化功能
   const handleRandomize = useCallback(() => {
     const curveTypes: Array<'arc' | 'sine' | 'free'> = ['arc', 'sine', 'free'];
     setParams({
@@ -221,7 +229,7 @@ export default function ScissorMechanismApp() {
     });
   }, []);
 
-  // 导出 SVG
+  // SVG 导出功能
   const handleExportSVG = useCallback(() => {
     const mech = mechanismRef.current;
     if (!mech) {
@@ -235,6 +243,13 @@ export default function ScissorMechanismApp() {
     }
     downloadSVG(svg);
   }, [mfgParams]);
+
+  // 添加扰动功能
+  const handleShake = useCallback(() => {
+    if (physicsRef.current) {
+      physicsRef.current.addRandomImpulse();
+    }
+  }, []);
 
   if (!mechanism) {
     return <div>Loading...</div>;
@@ -274,6 +289,7 @@ export default function ScissorMechanismApp() {
         onReset={handleReset}
         onRandomize={handleRandomize}
         onExportSVG={handleExportSVG}
+        onShake={handleShake}
         mechanism={mechanism}
         physicsEnabled={physicsEnabled}
         setPhysicsEnabled={setPhysicsEnabled}

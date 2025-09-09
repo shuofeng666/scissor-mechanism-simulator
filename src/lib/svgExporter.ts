@@ -44,7 +44,6 @@ export const exportLinksToSVG = (
   const bodyW = Math.max(0.1, linkWidth + kerf);
   const holeD = Math.max(0.1, holeDia + kerf);
 
-  // 收集所有连杆长度
   const allLinks: LinkInfo[] = [];
   for (const lk of mechanism.links) {
     if (!(lk.start && lk.end)) continue;
@@ -55,7 +54,6 @@ export const exportLinksToSVG = (
   
   if (allLinks.length === 0) return null;
 
-  // 按长度分组
   const groups = new Map<string, GroupInfo>();
   const roundTo = (x: number, step: number): number => Math.round(x / step) * step;
   
@@ -71,7 +69,6 @@ export const exportLinksToSVG = (
   
   const keys = Array.from(groups.keys()).sort((a, b) => parseFloat(a) - parseFloat(b));
 
-  // 布局计算
   const margin = spacing;
   const rowGap = bodyW + spacing;
   let x = margin;
@@ -107,7 +104,6 @@ export const exportLinksToSVG = (
   const widthMM = Math.max(maxRowW, perRow * (spacing + bodyW)) + margin;
   const heightMM = y + margin + bodyW;
 
-  // 生成 SVG
   const svgParts: string[] = [];
   svgParts.push(`<?xml version="1.0" encoding="UTF-8"?>`);
   svgParts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${widthMM}mm" height="${heightMM}mm" viewBox="0 0 ${widthMM} ${heightMM}" version="1.1">`);
@@ -129,12 +125,12 @@ export const exportLinksToSVG = (
     svgParts.push(`<path d="${capsulePath(cx, cy, p.Lmm, bodyW)}"/>`);
     
     const r = holeD / 2; 
-    const hx1 = cx - p.Lmm / 2;  // 左端孔
-    const hx2 = cx + p.Lmm / 2;  // 右端孔
-    const hxm = cx;              // 中间孔
+    const hx1 = cx - p.Lmm / 2;
+    const hx2 = cx + p.Lmm / 2;
+    const hxm = cx;
     const hy = cy;
     svgParts.push(`<circle cx="${hx1}" cy="${hy}" r="${r}"/>`);
-    svgParts.push(`<circle cx="${hxm}" cy="${hy}" r="${r}"/>`);  // 中间的枢轴孔
+    svgParts.push(`<circle cx="${hxm}" cy="${hy}" r="${r}"/>`);
     svgParts.push(`<circle cx="${hx2}" cy="${hy}" r="${r}"/>`);
   }
   

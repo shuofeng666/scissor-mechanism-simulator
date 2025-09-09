@@ -44,15 +44,15 @@ export interface Joint extends Point {
 export interface Pivot extends Point {
   segment: number;
   id: string;
-  link1: Link;  // 第一根穿过此枢轴的连杆
-  link2: Link;  // 第二根穿过此枢轴的连杆
+  link1: Link;
+  link2: Link;
 }
 
 export interface Link {
   start: Joint;
   end: Joint;
-  pivot: Pivot | null;  // 这根连杆的中间枢轴点
-  type: 'a' | 'b';  // 'a'类型: L->R斜上, 'b'类型: R->L斜上
+  pivot: Pivot | null;
+  type: 'a' | 'b';
   id: string;
 }
 
@@ -82,9 +82,7 @@ export class ImprovedScissorMechanism {
   baseCurve: Point[];
   _dirty: boolean;
   
-  // 锚点相关
   private _anchor: AnchorInfo | null = null;
-  private _originalMechanismCenter: Point = { x: 0, y: 0 };
 
   constructor() {
     this.segments = 4;
@@ -123,14 +121,12 @@ export class ImprovedScissorMechanism {
     this._dirty = true;
   }
 
-  // 设置锚点
   setAnchor(anchorId: string | null, targetWorldPos: Point | null): void {
     if (!anchorId || !targetWorldPos) {
       this._anchor = null;
       return;
     }
 
-    // 找到对应的节点
     const pivot = this.pivots.find(p => p.id === anchorId);
     const joint = this.joints.find(j => j.id === anchorId);
     const node = pivot || joint;
@@ -140,38 +136,31 @@ export class ImprovedScissorMechanism {
       return;
     }
 
-    // 记录锚点信息
     this._anchor = {
       id: anchorId,
       originalPos: { x: node.x, y: node.y },
       targetPos: { x: targetWorldPos.x, y: targetWorldPos.y }
     };
 
-    // 立即应用锚点约束
     this._applyAnchorConstraint();
   }
 
-  // 获取当前锚点信息
   getAnchor(): AnchorInfo | null {
     return this._anchor;
   }
 
-  // 应用锚点约束
   private _applyAnchorConstraint(): void {
     if (!this._anchor) return;
 
-    // 找到锚点节点
     const pivot = this.pivots.find(p => p.id === this._anchor!.id);
     const joint = this.joints.find(j => j.id === this._anchor!.id);
     const anchorNode = pivot || joint;
     
     if (!anchorNode) return;
 
-    // 计算需要移动的偏移量
     const dx = this._anchor.targetPos.x - anchorNode.x;
     const dy = this._anchor.targetPos.y - anchorNode.y;
 
-    // 移动整个机构
     this._translateAll(dx, dy);
   }
 
@@ -189,7 +178,6 @@ export class ImprovedScissorMechanism {
     }
   }
 
-  // 修复计算几何方法 - 正确的连杆结构
   calculateGeometry(freeCurve: Point[] | null = null): void {
     this.joints.length = 0;
     this.links.length = 0;
@@ -223,31 +211,27 @@ export class ImprovedScissorMechanism {
       this.joints.push(L, R);
     }
 
-    // 生成连杆和支点 - 正确的剪刀结构
+    // 生成连杆和支点
     for (let i = 0; i < this.segments; i++) {
-      const LB = this.joints[i * 2];      // L bottom
-      const RB = this.joints[i * 2 + 1];  // R bottom
-      const LT = this.joints[(i + 1) * 2];    // L top
-      const RT = this.joints[(i + 1) * 2 + 1]; // R top
+      const LB = this.joints[i * 2];
+      const RB = this.joints[i * 2 + 1];
+      const LT = this.joints[(i + 1) * 2];
+      const RT = this.joints[(i + 1) * 2 + 1];
       
       if (!(LB && RB && LT && RT)) continue;
 
-      // 计算两根连杆的交点（枢轴点）
       const pivotPoint = this.lineIntersection(LB, RT, RB, LT);
       if (!pivotPoint) continue;
       
-      // 创建枢轴点（先创建，稍后设置link1和link2）
       const P: Pivot = { 
         x: pivotPoint.x, 
         y: pivotPoint.y, 
         segment: i, 
         id: `P${i}`,
-        link1: null as any,  // 暂时设为null
-        link2: null as any   // 暂时设为null
+        link1: null as any,
+        link2: null as any
       };
       
-      // 创建两根完整的连杆
-      // 连杆1: 从 LB 到 RT (类型 'a' - 左下到右上)
       const link1: Link = { 
         start: LB, 
         end: RT, 
@@ -256,7 +240,6 @@ export class ImprovedScissorMechanism {
         id: `${LB.id}-${RT.id}` 
       };
       
-      // 连杆2: 从 RB 到 LT (类型 'b' - 右下到左上)
       const link2: Link = { 
         start: RB, 
         end: LT, 
@@ -265,7 +248,6 @@ export class ImprovedScissorMechanism {
         id: `${RB.id}-${LT.id}` 
       };
       
-      // 设置枢轴点的连杆引用
       P.link1 = link1;
       P.link2 = link2;
       
@@ -273,7 +255,6 @@ export class ImprovedScissorMechanism {
       this.links.push(link1, link2);
     }
 
-    // 应用锚点约束（如果存在）
     if (this._anchor) {
       this._applyAnchorConstraint();
     }
@@ -336,7 +317,6 @@ export class ImprovedScissorMechanism {
     if (!this.pivots.length) return { level: 'error', text: 'No pivot' };
     if (this.pivots.length < this.segments) return { level: 'warning', text: 'Partial' };
     
-    // 如果有锚点，显示锚点状态
     if (this._anchor) {
       return { level: 'good', text: `Anchored: ${this._anchor.id}` };
     }
@@ -357,52 +337,42 @@ export class ImprovedScissorMechanism {
     }
   }
 
-  // —— 在 ImprovedScissorMechanism 类内部末尾，加上 ——
-
-// 导出给物理世界用的图结构（id 对齐）
-toPhysicsGraph(): {
-  joints: { id: string; x: number; y: number }[];
-  rods: { a: string; b: string }[];
-} {
-  // joints：所有关节（不含 pivot，因为 pivot 是两杆交点，不是实际节点）
-  const joints = this.joints.map(j => ({ id: j.id, x: j.x, y: j.y }));
-  // rods：所有连杆（用 joint id 连接）
-  const rods = this.links
-    .filter(lk => lk.start && lk.end)
-    .map(lk => ({ a: lk.start.id, b: lk.end.id }));
-  return { joints, rods };
-}
-
-// 由物理结果回写坐标（id 匹配），然后只重算 pivots 和 trail，不重生 baseCurve
-applyPhysicsPositions(pos: Record<string, { x: number; y: number }>): void {
-  // 回写 joints
-  for (const j of this.joints) {
-    const p = pos[j.id];
-    if (p) { j.x = p.x; j.y = p.y; }
+  toPhysicsGraph(): {
+    joints: { id: string; x: number; y: number }[];
+    rods: { a: string; b: string }[];
+  } {
+    const joints = this.joints.map(j => ({ id: j.id, x: j.x, y: j.y }));
+    const rods = this.links
+      .filter(lk => lk.start && lk.end)
+      .map(lk => ({ a: lk.start.id, b: lk.end.id }));
+    return { joints, rods };
   }
-  // 依据新 joints 重算 pivots（交点）与 links 的 pivot 引用
-  this.pivots.length = 0;
-  for (let i = 0; i < this.segments; i++) {
-    const LB = this.joints[i * 2];
-    const RB = this.joints[i * 2 + 1];
-    const LT = this.joints[(i + 1) * 2];
-    const RT = this.joints[(i + 1) * 2 + 1];
-    if (!(LB && RB && LT && RT)) continue;
 
-    const pv = this.lineIntersection(LB, RT, RB, LT);
-    if (!pv) continue;
+  applyPhysicsPositions(pos: Record<string, { x: number; y: number }>): void {
+    for (const j of this.joints) {
+      const p = pos[j.id];
+      if (p) { j.x = p.x; j.y = p.y; }
+    }
+    
+    this.pivots.length = 0;
+    for (let i = 0; i < this.segments; i++) {
+      const LB = this.joints[i * 2];
+      const RB = this.joints[i * 2 + 1];
+      const LT = this.joints[(i + 1) * 2];
+      const RT = this.joints[(i + 1) * 2 + 1];
+      if (!(LB && RB && LT && RT)) continue;
 
-    const P = { x: pv.x, y: pv.y, segment: i, id: `P${i}`, link1: null as any, link2: null as any };
-    // 与 links 重绑
-    const link1 = this.links.find(l => l.id === `${LB.id}-${RT.id}`);
-    const link2 = this.links.find(l => l.id === `${RB.id}-${LT.id}`);
-    if (link1) link1.pivot = P;
-    if (link2) link2.pivot = P;
+      const pv = this.lineIntersection(LB, RT, RB, LT);
+      if (!pv) continue;
 
-    this.pivots.push(P as any);
+      const P = { x: pv.x, y: pv.y, segment: i, id: `P${i}`, link1: null as any, link2: null as any };
+      const link1 = this.links.find(l => l.id === `${LB.id}-${RT.id}`);
+      const link2 = this.links.find(l => l.id === `${RB.id}-${LT.id}`);
+      if (link1) link1.pivot = P;
+      if (link2) link2.pivot = P;
+
+      this.pivots.push(P as any);
+    }
+    this.updateTrail();
   }
-  // trail 更新
-  this.updateTrail();
-}
-
 }

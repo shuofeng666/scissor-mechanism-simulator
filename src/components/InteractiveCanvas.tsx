@@ -40,7 +40,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
   const [lastMouse, setLastMouse] = useState({ x: 0, y: 0 });
   const [drawingPoints, setDrawingPoints] = useState<Point[]>([]);
 
-  // 颜色配置 - 彩虹渐变色系，都带半透明效果
+  // 🎨 彩虹渐变色系，都带半透明效果
   const linkColors = [
     { fill: 'rgba(239, 68, 68, 0.15)', stroke: '#ef4444' },   // 红色
     { fill: 'rgba(251, 146, 60, 0.15)', stroke: '#f97316' }, // 橙色
@@ -52,22 +52,20 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
     { fill: 'rgba(20, 184, 166, 0.15)', stroke: '#14b8a6' }, // 青色
   ];
 
-  // 修正的坐标转换函数 - 这些函数现在会正确处理缩放
+  // 坐标转换函数
   const modelToScreen = useCallback((mx: number, my: number): Point => {
-    // 将模型坐标转换为屏幕坐标，考虑缩放和偏移
     const sx = (mx + viewState.offsetX) * viewState.scale + canvasSize.width / 2;
     const sy = (my + viewState.offsetY) * viewState.scale + canvasSize.height / 2;
     return { x: sx, y: sy };
   }, [viewState, canvasSize]);
 
   const screenToModel = useCallback((sx: number, sy: number): Point => {
-    // 将屏幕坐标转换为模型坐标
     const mx = (sx - canvasSize.width / 2) / viewState.scale - viewState.offsetX;
     const my = (sy - canvasSize.height / 2) / viewState.scale - viewState.offsetY;
     return { x: mx, y: my };
   }, [viewState, canvasSize]);
 
-  // 节点拾取 - 在屏幕空间中进行
+  // 节点拾取
   const pickNodeAt = useCallback((sx: number, sy: number): NodePickResult | null => {
     const R_pivot = 12;
     const R_joint = 10;
@@ -133,13 +131,9 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
     if (anchorMode) {
       const hit = pickNodeAt(x, y);
       if (hit) {
-        // ✅ 改为用模型坐标（非常关键）：
         const worldPos = screenToModel(x, y);
-        
-        // 设置UI状态
         setAnchor({ id: hit.id, world: worldPos });
         
-        // 安全地设置机构的锚点约束
         if (mechanism && typeof mechanism.setAnchor === 'function') {
           mechanism.setAnchor(hit.id, worldPos);
         }
@@ -221,14 +215,11 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     
-    // 计算鼠标位置在模型空间的坐标
     const mouseModel = screenToModel(x, y);
     
-    // 缩放
     const scaleFactor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
     const newScale = Math.max(0.1, Math.min(10, viewState.scale * scaleFactor));
     
-    // 计算新的偏移，使鼠标位置保持不变
     const newMouseModel = {
       x: (x - canvasSize.width / 2) / newScale - viewState.offsetX,
       y: (y - canvasSize.height / 2) / newScale - viewState.offsetY
@@ -324,7 +315,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
             );
           })}
 
-          {/* 制造预览 - 彩色杆件 */}
+          {/* 🎨 制造预览 - 彩色杆件 */}
           {showOptions.showMfg && (
             <g>
               {mechanism.links.map((link, idx) => {
@@ -332,7 +323,6 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                 const startScreen = modelToScreen(link.start.x - mechanism.centerX, link.start.y - mechanism.centerY);
                 const endScreen = modelToScreen(link.end.x - mechanism.centerX, link.end.y - mechanism.centerY);
                 
-                // 计算连杆的胶囊形状
                 const linkLength = Math.hypot(endScreen.x - startScreen.x, endScreen.y - startScreen.y);
                 const linkWidthPx = mfgParams.linkWidth * viewState.scale;
                 const holeRadiusPx = (mfgParams.holeDia / 2) * viewState.scale;
@@ -343,7 +333,6 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                 const centerX = (startScreen.x + endScreen.x) / 2;
                 const centerY = (startScreen.y + endScreen.y) / 2;
                 
-                // 绘制胶囊形状（矩形 + 两个半圆）
                 const halfWidth = linkWidthPx / 2;
                 const halfLength = linkLength / 2;
                 
@@ -358,7 +347,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                   { x: centerX - halfLength * cos + halfWidth * sin, y: centerY - halfLength * sin - halfWidth * cos }
                 ];
                 
-                // 选择颜色 - 循环使用配色数组
+                // 🌈 选择颜色 - 循环使用配色数组
                 const colorScheme = linkColors[idx % linkColors.length];
                 
                 return (

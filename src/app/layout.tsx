@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Scissor Mechanism Simulator',
-  description: '剪刀式机构模拟器 - 基于 React 的交互式工程力学仿真工具',
+  description: 'Interactive scissor mechanism simulator with real-time physics simulation',
 }
 
 export default function RootLayout({
