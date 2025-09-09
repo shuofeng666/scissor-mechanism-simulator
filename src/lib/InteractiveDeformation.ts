@@ -122,10 +122,11 @@ export class InteractiveDeformationSystem {
             const otherLink = this.mechanism.links.find(otherLink => 
               otherLink !== link && 
               otherLink.pivot && 
+              link.pivot && // 修复：添加 link.pivot 的空值检查
               otherLink.pivot.id === link.pivot.id
             );
 
-            if (otherLink && otherLink.pivot) {
+            if (otherLink && otherLink.pivot && link.pivot) {
               // 重新计算两条连杆的交点作为支点位置
               const intersection = this.mechanism.lineIntersection(
                 link.start, link.end,
@@ -133,15 +134,11 @@ export class InteractiveDeformationSystem {
               );
 
               if (intersection) {
-                // 修复：添加空值检查
-                if (link.pivot) {
-                  link.pivot.x = intersection.x;
-                  link.pivot.y = intersection.y;
-                }
-                if (otherLink.pivot) {
-                  otherLink.pivot.x = intersection.x;
-                  otherLink.pivot.y = intersection.y;
-                }
+                // 更新支点位置
+                link.pivot.x = intersection.x;
+                link.pivot.y = intersection.y;
+                otherLink.pivot.x = intersection.x;
+                otherLink.pivot.y = intersection.y;
               }
             }
           }
