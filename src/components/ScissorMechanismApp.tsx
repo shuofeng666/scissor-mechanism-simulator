@@ -1,9 +1,11 @@
+// src/components/ScissorMechanismApp.tsx (更新版 - 集成动画系统)
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ImprovedScissorMechanism, Point } from '../lib/ScissorMechanism';
 import { exportLinksToSVG, downloadSVG } from '../lib/svgExporter';
 import { FixedPhysicsAdapter } from '../lib/physics/FixedPhysicsAdapter';
+import { PhysicsAnimationSystem } from '../lib/PhysicsAnimation'; // 🚀 新增
 import {
   MechanismParams,
   ShowOptions,
@@ -29,9 +31,10 @@ export default function ScissorMechanismApp() {
   }
   const mechanism = mechanismRef.current;
 
-  // 物理适配器
+  // 物理适配器和动画系统
   const physicsRef = useRef<FixedPhysicsAdapter | null>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<PhysicsAnimationSystem | null>(null); // 🚀 新增
+  const animationFrameRef = useRef<number>();
 
   // 画布尺寸
   const [canvasSize, setCanvasSize] = useState<CanvasSize>(() => {
@@ -57,7 +60,7 @@ export default function ScissorMechanismApp() {
     showPivots: true,
     showTrail: false,
     showLabels: true,
-    showMfg: true, // 默认显示彩色制造预览
+    showMfg: true,
   });
 
   // 视图状态
@@ -73,6 +76,10 @@ export default function ScissorMechanismApp() {
   const [anchorMode, setAnchorMode] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [physicsEnabled, setPhysicsEnabled] = useState(false);
+
+  // 🚀 动画状态
+  const [animationEnabled, setAnimationEnabled] = useState(false);
+  const [animationPreset, setAnimationPreset] = useState<'gentle' | 'dynamic' | 'chaotic'>('gentle');
 
   // 制造参数
   const [mfgParams, setMfgParams] = useState<ManufacturingParams>({
@@ -105,11 +112,18 @@ export default function ScissorMechanismApp() {
     mechanism.setParams(params);
     mechanism.update(freeCurve.length > 0 ? freeCurve : null);
     
-    // 如果物理模拟启用，重建物理世界
     if (physicsEnabled && physicsRef.current) {
       physicsRef.current.rebuild();
+      
+      // 🚀 重建动画系统
+      if (animationEnabled && animationRef.current) {
+        animationRef.current.stop();
+        animationRef.current = new PhysicsAnimationSystem(physicsRef.current);
+        animationRef.current.applyPreset(animationPreset);
+        animationRef.current.start();
+      }
     }
-  }, [params, freeCurve, physicsEnabled, mechanism]);
+  }, [params, freeCurve, physicsEnabled, mechanism, animationEnabled, animationPreset]);
 
   // 物理模拟开关
   useEffect(() => {
@@ -121,6 +135,14 @@ export default function ScissorMechanismApp() {
         stiffness: 0.9,
         damping: 0.02
       });
+
+      // 🚀 创建动画系统
+      if (animationEnabled) {
+        animationRef.current?.stop();
+        animationRef.current = new PhysicsAnimationSystem(physicsRef.current);
+        animationRef.current.applyPreset(animationPreset);
+        animationRef.current.start();
+      }
 
       // 如果有锚点，设置它
       if (anchor.id) {
@@ -136,16 +158,21 @@ export default function ScissorMechanismApp() {
       const animate = () => {
         if (physicsRef.current) {
           physicsRef.current.updateMechanism();
-          animationRef.current = requestAnimationFrame(animate);
+          animationFrameRef.current = requestAnimationFrame(animate);
         }
       };
       animate();
 
     } else {
       // 关闭物理模拟
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
       }
+      
+      // 🚀 停止动画
+      animationRef.current?.stop();
+      animationRef.current = null;
+      
       physicsRef.current?.destroy();
       physicsRef.current = null;
       
@@ -154,11 +181,27 @@ export default function ScissorMechanismApp() {
     }
 
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
       }
+      animationRef.current?.stop(); // 🚀 清理动画
     };
-  }, [physicsEnabled, anchor.id, mechanism, freeCurve]);
+  }, [physicsEnabled, anchor.id, mechanism, freeCurve, animationEnabled, animationPreset]);
+
+  // 🚀 动画开关效果
+  useEffect(() => {
+    if (physicsEnabled && physicsRef.current) {
+      if (animationEnabled) {
+        animationRef.current?.stop();
+        animationRef.current = new PhysicsAnimationSystem(physicsRef.current);
+        animationRef.current.applyPreset(animationPreset);
+        animationRef.current.start();
+      } else {
+        animationRef.current?.stop();
+        animationRef.current = null;
+      }
+    }
+  }, [animationEnabled, physicsEnabled, animationPreset]);
 
   // 锚点变化时更新物理
   useEffect(() => {
@@ -169,10 +212,12 @@ export default function ScissorMechanismApp() {
 
   // 重置功能
   const handleReset = useCallback(() => {
-    // 清理物理
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
+    // 清理物理和动画
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
     }
+    animationRef.current?.stop(); // 🚀 停止动画
+    animationRef.current = null;
     physicsRef.current?.destroy();
     physicsRef.current = null;
 
@@ -202,6 +247,7 @@ export default function ScissorMechanismApp() {
     setAnchorMode(false);
     setIsDrawing(false);
     setPhysicsEnabled(false);
+    setAnimationEnabled(false); // 🚀 重置动画状态
 
     // 初始化机制
     if (mech) {
@@ -251,6 +297,19 @@ export default function ScissorMechanismApp() {
     }
   }, []);
 
+  // 🚀 新增：触发特殊动画
+  const handleExplosion = useCallback(() => {
+    if (animationRef.current) {
+      animationRef.current.triggerExplosion(0.08);
+    }
+  }, []);
+
+  const handleWave = useCallback((direction: 'left' | 'right' | 'up' | 'down') => {
+    if (animationRef.current) {
+      animationRef.current.triggerWave(direction, 0.05);
+    }
+  }, []);
+
   if (!mechanism) {
     return <div>Loading...</div>;
   }
@@ -293,10 +352,21 @@ export default function ScissorMechanismApp() {
         mechanism={mechanism}
         physicsEnabled={physicsEnabled}
         setPhysicsEnabled={setPhysicsEnabled}
+        // 🚀 新增动画相关 props
+        animationEnabled={animationEnabled}
+        setAnimationEnabled={setAnimationEnabled}
+        animationPreset={animationPreset}
+        setAnimationPreset={setAnimationPreset}
+        onExplosion={handleExplosion}
+        onWave={handleWave}
       />
 
       {/* 状态面板 */}
-      <StatusPanel mechanism={mechanism} physicsEnabled={physicsEnabled} />
+      <StatusPanel 
+        mechanism={mechanism} 
+        physicsEnabled={physicsEnabled}
+        animationEnabled={animationEnabled} // 🚀 传递动画状态
+      />
 
       {/* 制造参数面板 */}
       <ManufacturingPanel params={mfgParams} setParams={setMfgParams} />

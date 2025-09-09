@@ -1,4 +1,4 @@
-// src/components/ControlPanel.tsx (修复版)
+// src/components/ControlPanel.tsx (更新版 - 添加动画控制)
 'use client';
 
 import React from 'react';
@@ -21,6 +21,13 @@ interface ControlPanelProps {
   mechanism: ImprovedScissorMechanism;
   physicsEnabled: boolean;
   setPhysicsEnabled: (enabled: boolean) => void;
+  // 🚀 新增动画相关 props
+  animationEnabled: boolean;
+  setAnimationEnabled: (enabled: boolean) => void;
+  animationPreset: 'gentle' | 'dynamic' | 'chaotic';
+  setAnimationPreset: (preset: 'gentle' | 'dynamic' | 'chaotic') => void;
+  onExplosion: () => void;
+  onWave: (direction: 'left' | 'right' | 'up' | 'down') => void;
 }
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -38,7 +45,14 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   onShake,
   mechanism,
   physicsEnabled,
-  setPhysicsEnabled
+  setPhysicsEnabled,
+  // 🚀 动画相关
+  animationEnabled,
+  setAnimationEnabled,
+  animationPreset,
+  setAnimationPreset,
+  onExplosion,
+  onWave
 }) => {
   return (
     <div className="absolute top-4 left-4 w-80 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-4 space-y-4 max-h-[90vh] overflow-y-auto">
@@ -58,6 +72,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             Enable Physics Simulation
           </span>
         </label>
+        
         {physicsEnabled && (
           <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded space-y-2">
             <div>🎯 Physics mode: Use anchor to pin joints and watch the chain react to gravity!</div>
@@ -70,6 +85,82 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           </div>
         )}
       </div>
+
+      {/* 🚀 动画控制区域 */}
+      {physicsEnabled && (
+        <div className="space-y-2">
+          <h3 className="text-xs font-medium text-gray-600 uppercase tracking-wide">Animation</h3>
+          
+          {/* 动画开关 */}
+          <label className="flex items-center space-x-2 text-sm">
+            <input
+              type="checkbox"
+              checked={animationEnabled}
+              onChange={(e) => setAnimationEnabled(e.target.checked)}
+              className="w-4 h-4 rounded"
+            />
+            <span className={`${animationEnabled ? 'text-purple-600 font-medium' : 'text-gray-700'}`}>
+              Auto Animation
+            </span>
+          </label>
+
+          {animationEnabled && (
+            <div className="space-y-2">
+              {/* 动画预设选择 */}
+              <div>
+                <label className="text-xs text-gray-600 mb-1 block">Animation Style:</label>
+                <div className="grid grid-cols-3 gap-1">
+                  {(['gentle', 'dynamic', 'chaotic'] as const).map(preset => (
+                    <button
+                      key={preset}
+                      onClick={() => setAnimationPreset(preset)}
+                      className={`px-2 py-1 text-xs rounded border transition-all ${
+                        animationPreset === preset 
+                          ? 'border-purple-600 bg-purple-600 text-white' 
+                          : 'border-gray-300 hover:border-purple-400 bg-white hover:bg-purple-50'
+                      }`}
+                    >
+                      {preset === 'gentle' ? '🌸 Gentle' : 
+                       preset === 'dynamic' ? '⚡ Dynamic' : '🌪️ Chaotic'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 特殊效果按钮 */}
+              <div className="space-y-2">
+                <div className="text-xs text-gray-600">Special Effects:</div>
+                <div className="grid grid-cols-2 gap-1">
+                  <button
+                    onClick={onExplosion}
+                    className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded font-medium"
+                  >
+                    💥 Explosion
+                  </button>
+                  <button
+                    onClick={() => onWave('up')}
+                    className="px-2 py-1 bg-cyan-500 hover:bg-cyan-600 text-white text-xs rounded font-medium"
+                  >
+                    ⬆️ Wave Up
+                  </button>
+                  <button
+                    onClick={() => onWave('left')}
+                    className="px-2 py-1 bg-cyan-500 hover:bg-cyan-600 text-white text-xs rounded font-medium"
+                  >
+                    ⬅️ Wave Left
+                  </button>
+                  <button
+                    onClick={() => onWave('right')}
+                    className="px-2 py-1 bg-cyan-500 hover:bg-cyan-600 text-white text-xs rounded font-medium"
+                  >
+                    ➡️ Wave Right
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       
       {/* 曲线类型选择 */}
       <div className="space-y-2">

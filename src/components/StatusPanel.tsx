@@ -1,4 +1,4 @@
-// src/components/StatusPanel.tsx (修复版)
+// src/components/StatusPanel.tsx (更新版 - 显示动画状态)
 'use client';
 
 import React from 'react';
@@ -7,11 +7,13 @@ import { ImprovedScissorMechanism } from '../lib/ScissorMechanism';
 interface StatusPanelProps {
   mechanism: ImprovedScissorMechanism;
   physicsEnabled?: boolean;
+  animationEnabled?: boolean; // 🚀 新增
 }
 
 export const StatusPanel: React.FC<StatusPanelProps> = ({ 
   mechanism, 
-  physicsEnabled = false
+  physicsEnabled = false,
+  animationEnabled = false // 🚀 新增
 }) => {
   const integrity = mechanism.getIntegrity();
 
@@ -32,6 +34,21 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({
             <span className="font-mono">{physicsEnabled ? 'Physics' : 'Geometry'}</span>
           </span>
         </div>
+
+        {/* 🚀 动画状态 */}
+        {physicsEnabled && (
+          <div className="flex items-center space-x-1">
+            <span className="text-gray-600">Animation:</span>
+            <span className={`inline-flex items-center space-x-1 ${
+              animationEnabled ? 'text-purple-600' : 'text-gray-400'
+            }`}>
+              <span className={`w-2 h-2 rounded-full ${
+                animationEnabled ? 'bg-purple-600 animate-pulse' : 'bg-gray-400'
+              }`}></span>
+              <span className="font-mono">{animationEnabled ? 'Active' : 'Off'}</span>
+            </span>
+          </div>
+        )}
         
         <div className="grid grid-cols-2 gap-x-3 gap-y-1">
           <div>
@@ -65,6 +82,14 @@ export const StatusPanel: React.FC<StatusPanelProps> = ({
             <span className="font-mono">{integrity.text}</span>
           </span>
         </div>
+
+        {/* 🚀 动画提示 */}
+        {physicsEnabled && animationEnabled && (
+          <div className="text-xs text-purple-600 bg-purple-50 p-2 rounded border border-purple-200 mt-2">
+            <div className="font-medium">🎬 Auto Animation Active</div>
+            <div>Gravity and forces are automatically animated</div>
+          </div>
+        )}
       </div>
     </div>
   );
