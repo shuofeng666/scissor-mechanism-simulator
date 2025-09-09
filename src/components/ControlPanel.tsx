@@ -1,4 +1,4 @@
-// src/components/ControlPanel.tsx (更新版 - 添加动画控制)
+// src/components/ControlPanel.tsx (简洁版)
 'use client';
 
 import React from 'react';
@@ -21,7 +21,6 @@ interface ControlPanelProps {
   mechanism: ImprovedScissorMechanism;
   physicsEnabled: boolean;
   setPhysicsEnabled: (enabled: boolean) => void;
-  // 🚀 新增动画相关 props
   animationEnabled: boolean;
   setAnimationEnabled: (enabled: boolean) => void;
   animationPreset: 'gentle' | 'dynamic' | 'chaotic';
@@ -46,7 +45,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   mechanism,
   physicsEnabled,
   setPhysicsEnabled,
-  // 🚀 动画相关
   animationEnabled,
   setAnimationEnabled,
   animationPreset,
@@ -55,149 +53,125 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   onWave
 }) => {
   return (
-    <div className="absolute top-4 left-4 w-80 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-4 space-y-4 max-h-[90vh] overflow-y-auto">
-      <h1 className="text-lg font-bold text-gray-900">Scissor Mechanism</h1>
+    <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-4 space-y-4 h-full overflow-y-auto">
       
-      {/* 🚀 物理模拟开关 */}
-      <div className="space-y-2">
-        <h3 className="text-xs font-medium text-gray-600 uppercase tracking-wide">Physics</h3>
-        <label className="flex items-center space-x-2 text-sm">
+      {/* 物理模拟 */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium text-gray-800">Physics Simulation</h3>
+        <label className="flex items-center space-x-2">
           <input
             type="checkbox"
             checked={physicsEnabled}
             onChange={(e) => setPhysicsEnabled(e.target.checked)}
-            className="w-4 h-4 rounded"
+            className="w-4 h-4 rounded border-gray-300"
           />
-          <span className={`${physicsEnabled ? 'text-blue-600 font-medium' : 'text-gray-700'}`}>
-            Enable Physics Simulation
+          <span className={`text-sm ${physicsEnabled ? 'text-blue-600 font-medium' : 'text-gray-700'}`}>
+            Enable Physics
           </span>
         </label>
         
         {physicsEnabled && (
-          <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded space-y-2">
-            <div>🎯 Physics mode: Use anchor to pin joints and watch the chain react to gravity!</div>
-            <button
-              onClick={onShake}
-              className="w-full px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded font-medium"
-            >
-              🌊 Shake Chain
-            </button>
+          <div className="space-y-3 pl-4 border-l-2 border-blue-100">
+            {/* 基础控制 */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={onShake}
+                className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm rounded border border-blue-200 transition-colors"
+              >
+                Shake
+              </button>
+              <button
+                onClick={onExplosion}
+                className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 text-sm rounded border border-red-200 transition-colors"
+              >
+                Explosion
+              </button>
+            </div>
+
+            {/* 动画控制 */}
+            <div className="bg-purple-50 p-3 rounded border border-purple-200">
+              <label className="flex items-center space-x-2 mb-3">
+                <input
+                  type="checkbox"
+                  checked={animationEnabled}
+                  onChange={(e) => setAnimationEnabled(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300"
+                />
+                <span className={`text-sm ${animationEnabled ? 'text-purple-600 font-medium' : 'text-gray-700'}`}>
+                  Auto Animation
+                </span>
+              </label>
+
+              {animationEnabled && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-gray-600 mb-2 block">Animation Style</label>
+                    <div className="grid grid-cols-3 gap-1">
+                      {(['gentle', 'dynamic', 'chaotic'] as const).map(preset => (
+                        <button
+                          key={preset}
+                          onClick={() => setAnimationPreset(preset)}
+                          className={`px-2 py-1 text-xs rounded transition-all capitalize ${
+                            animationPreset === preset 
+                              ? 'bg-purple-600 text-white' 
+                              : 'bg-white hover:bg-purple-100 border border-purple-300 text-purple-700'
+                          }`}
+                        >
+                          {preset}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-gray-600 mb-2 block">Wave Effects</label>
+                    <div className="grid grid-cols-4 gap-1">
+                      <button onClick={() => onWave('up')} className="px-2 py-1 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 text-xs rounded border border-cyan-200">Up</button>
+                      <button onClick={() => onWave('down')} className="px-2 py-1 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 text-xs rounded border border-cyan-200">Down</button>
+                      <button onClick={() => onWave('left')} className="px-2 py-1 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 text-xs rounded border border-cyan-200">Left</button>
+                      <button onClick={() => onWave('right')} className="px-2 py-1 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 text-xs rounded border border-cyan-200">Right</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
-
-      {/* 🚀 动画控制区域 */}
-      {physicsEnabled && (
-        <div className="space-y-2">
-          <h3 className="text-xs font-medium text-gray-600 uppercase tracking-wide">Animation</h3>
-          
-          {/* 动画开关 */}
-          <label className="flex items-center space-x-2 text-sm">
-            <input
-              type="checkbox"
-              checked={animationEnabled}
-              onChange={(e) => setAnimationEnabled(e.target.checked)}
-              className="w-4 h-4 rounded"
-            />
-            <span className={`${animationEnabled ? 'text-purple-600 font-medium' : 'text-gray-700'}`}>
-              Auto Animation
-            </span>
-          </label>
-
-          {animationEnabled && (
-            <div className="space-y-2">
-              {/* 动画预设选择 */}
-              <div>
-                <label className="text-xs text-gray-600 mb-1 block">Animation Style:</label>
-                <div className="grid grid-cols-3 gap-1">
-                  {(['gentle', 'dynamic', 'chaotic'] as const).map(preset => (
-                    <button
-                      key={preset}
-                      onClick={() => setAnimationPreset(preset)}
-                      className={`px-2 py-1 text-xs rounded border transition-all ${
-                        animationPreset === preset 
-                          ? 'border-purple-600 bg-purple-600 text-white' 
-                          : 'border-gray-300 hover:border-purple-400 bg-white hover:bg-purple-50'
-                      }`}
-                    >
-                      {preset === 'gentle' ? '🌸 Gentle' : 
-                       preset === 'dynamic' ? '⚡ Dynamic' : '🌪️ Chaotic'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* 特殊效果按钮 */}
-              <div className="space-y-2">
-                <div className="text-xs text-gray-600">Special Effects:</div>
-                <div className="grid grid-cols-2 gap-1">
-                  <button
-                    onClick={onExplosion}
-                    className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded font-medium"
-                  >
-                    💥 Explosion
-                  </button>
-                  <button
-                    onClick={() => onWave('up')}
-                    className="px-2 py-1 bg-cyan-500 hover:bg-cyan-600 text-white text-xs rounded font-medium"
-                  >
-                    ⬆️ Wave Up
-                  </button>
-                  <button
-                    onClick={() => onWave('left')}
-                    className="px-2 py-1 bg-cyan-500 hover:bg-cyan-600 text-white text-xs rounded font-medium"
-                  >
-                    ⬅️ Wave Left
-                  </button>
-                  <button
-                    onClick={() => onWave('right')}
-                    className="px-2 py-1 bg-cyan-500 hover:bg-cyan-600 text-white text-xs rounded font-medium"
-                  >
-                    ➡️ Wave Right
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
       
-      {/* 曲线类型选择 */}
-      <div className="space-y-2">
-        <h3 className="text-xs font-medium text-gray-600 uppercase tracking-wide">Curve</h3>
-        <div className="grid grid-cols-3 gap-1">
+      {/* 曲线类型 */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium text-gray-800">Curve Type</h3>
+        <div className="grid grid-cols-3 gap-2">
           {(['arc', 'sine', 'free'] as const).map(type => (
             <button
               key={type}
               onClick={() => setParams(p => ({ ...p, curveType: type }))}
-              className={`px-2 py-1 text-xs rounded border transition-all ${
+              className={`px-3 py-2 text-sm rounded border transition-all capitalize ${
                 params.curveType === type 
-                  ? 'border-gray-900 bg-gray-900 text-white' 
-                  : 'border-gray-300 hover:border-gray-400 bg-white hover:bg-gray-50'
+                  ? 'border-gray-800 bg-gray-800 text-white' 
+                  : 'border-gray-300 hover:border-gray-400 bg-white hover:bg-gray-50 text-gray-700'
               }`}
             >
-              {type === 'arc' ? 'Arc' : type === 'sine' ? 'Sine' : 'Free'}
+              {type}
             </button>
           ))}
         </div>
         
-        {/* 🖊️ Free模式的画线提示 */}
         {params.curveType === 'free' && (
-          <div className="text-xs text-green-600 bg-green-50 p-2 rounded border border-green-200">
-            <div className="font-medium mb-1">✏️ Free Draw Mode Active!</div>
-            <div>• Left click + drag on canvas to draw</div>
-            <div>• Release mouse to apply curve</div>
-            <div>• Draw slowly for smoother results</div>
+          <div className="text-sm text-green-700 bg-green-50 p-3 rounded border border-green-200">
+            <div className="font-medium mb-1">Free Draw Mode</div>
+            <div className="text-xs text-green-600">Left click and drag on canvas to draw</div>
           </div>
         )}
       </div>
 
-      {/* 基础参数 */}
+      {/* 参数控制 */}
       <div className="space-y-3">
-        <h3 className="text-xs font-medium text-gray-600 uppercase tracking-wide">Basic</h3>
+        <h3 className="text-sm font-medium text-gray-800">Parameters</h3>
         
         <div>
-          <label className="flex justify-between text-xs text-gray-700 mb-1">
+          <label className="flex justify-between text-sm text-gray-700 mb-2">
             <span>Segments</span>
             <span className="text-gray-900 font-mono">{params.segments}</span>
           </label>
@@ -207,13 +181,13 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             max="12"
             value={params.segments}
             onChange={(e) => setParams(p => ({ ...p, segments: parseInt(e.target.value) }))}
-            className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
           />
         </div>
 
         <div>
-          <label className="flex justify-between text-xs text-gray-700 mb-1">
-            <span>Link length</span>
+          <label className="flex justify-between text-sm text-gray-700 mb-2">
+            <span>Link Length</span>
             <span className="text-gray-900 font-mono">{params.linkLength}px</span>
           </label>
           <input
@@ -222,17 +196,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             max="120"
             value={params.linkLength}
             onChange={(e) => setParams(p => ({ ...p, linkLength: parseInt(e.target.value) }))}
-            className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
           />
         </div>
-      </div>
 
-      {/* 曲线参数 */}
-      <div className="space-y-3">
-        <h3 className="text-xs font-medium text-gray-600 uppercase tracking-wide">Curve Params</h3>
-        
         <div>
-          <label className="flex justify-between text-xs text-gray-700 mb-1">
+          <label className="flex justify-between text-sm text-gray-700 mb-2">
             <span>Curvature</span>
             <span className="text-gray-900 font-mono">{params.curvature.toFixed(1)}</span>
           </label>
@@ -243,13 +212,13 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             step="0.1"
             value={params.curvature}
             onChange={(e) => setParams(p => ({ ...p, curvature: parseFloat(e.target.value) }))}
-            className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
           />
         </div>
 
         <div>
-          <label className="flex justify-between text-xs text-gray-700 mb-1">
-            <span>Length</span>
+          <label className="flex justify-between text-sm text-gray-700 mb-2">
+            <span>Curve Length</span>
             <span className="text-gray-900 font-mono">{params.curveLength}px</span>
           </label>
           <input
@@ -258,29 +227,29 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             max="500"
             value={params.curveLength}
             onChange={(e) => setParams(p => ({ ...p, curveLength: parseInt(e.target.value) }))}
-            className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
           />
         </div>
       </div>
 
       {/* 显示选项 */}
-      <div className="space-y-2">
-        <h3 className="text-xs font-medium text-gray-600 uppercase tracking-wide">Display</h3>
-        <div className="grid grid-cols-2 gap-1 text-xs">
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium text-gray-800">Display Options</h3>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
           {Object.entries({
             showCurve: 'Curve',
             showJoints: 'Joints',
             showPivots: 'Pivots',
             showTrail: 'Trail',
             showLabels: 'Labels',
-            showMfg: 'Laser'
+            showMfg: 'Manufacturing'
           }).map(([key, label]) => (
-            <label key={key} className="flex items-center space-x-1">
+            <label key={key} className="flex items-center space-x-2">
               <input
                 type="checkbox"
                 checked={showOptions[key as keyof ShowOptions]}
                 onChange={(e) => setShowOptions(o => ({ ...o, [key]: e.target.checked }))}
-                className="w-3 h-3 rounded"
+                className="w-4 h-4 rounded border-gray-300"
               />
               <span className="text-gray-700">{label}</span>
             </label>
@@ -289,18 +258,18 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
 
       {/* 锚点控制 */}
-      <div className="space-y-2">
-        <h3 className="text-xs font-medium text-gray-600 uppercase tracking-wide">Anchor</h3>
-        <label className="flex items-center space-x-2 text-xs">
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium text-gray-800">Anchor Control</h3>
+        <label className="flex items-center space-x-2">
           <input
             type="checkbox"
             checked={anchorMode}
             onChange={(e) => setAnchorMode(e.target.checked)}
-            className="w-3 h-3 rounded"
+            className="w-4 h-4 rounded border-gray-300"
           />
-          <span className="text-gray-700">Anchor mode</span>
+          <span className="text-sm text-gray-700">Anchor mode</span>
         </label>
-        <div className="flex space-x-1">
+        <div className="flex space-x-2">
           <button
             onClick={() => {
               setAnchor({ id: null, world: null });
@@ -309,36 +278,14 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 mechanism.setAnchor(null, null);
               }
             }}
-            className="flex-1 px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-900 text-xs rounded border border-gray-300"
+            className="flex-1 px-3 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 text-sm rounded border border-gray-300 transition-colors"
           >
             Clear
           </button>
-          <span className="text-xs text-gray-500 px-2 py-1 bg-gray-50 rounded border border-gray-200">
+          <div className="flex-1 text-sm text-gray-500 px-3 py-2 bg-gray-50 rounded border border-gray-200 text-center">
             {anchor?.id || 'none'}
-          </span>
+          </div>
         </div>
-      </div>
-
-      {/* 控制按钮 */}
-      <div className="flex space-x-1">
-        <button
-          onClick={onReset}
-          className="flex-1 px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-900 text-xs rounded border border-gray-300"
-        >
-          Reset
-        </button>
-        <button
-          onClick={onRandomize}
-          className="flex-1 px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded"
-        >
-          Random
-        </button>
-        <button
-          onClick={onExportSVG}
-          className="flex-1 px-2 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded"
-        >
-          Export
-        </button>
       </div>
     </div>
   );

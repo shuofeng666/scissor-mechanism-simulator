@@ -1,11 +1,11 @@
-// src/components/ScissorMechanismApp.tsx (更新版 - 集成动画系统)
+// src/components/ScissorMechanismApp.tsx (简洁版)
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ImprovedScissorMechanism, Point } from '../lib/ScissorMechanism';
 import { exportLinksToSVG, downloadSVG } from '../lib/svgExporter';
 import { FixedPhysicsAdapter } from '../lib/physics/FixedPhysicsAdapter';
-import { PhysicsAnimationSystem } from '../lib/PhysicsAnimation'; // 🚀 新增
+import { PhysicsAnimationSystem } from '../lib/PhysicsAnimation';
 import {
   MechanismParams,
   ShowOptions,
@@ -33,8 +33,16 @@ export default function ScissorMechanismApp() {
 
   // 物理适配器和动画系统
   const physicsRef = useRef<FixedPhysicsAdapter | null>(null);
-  const animationRef = useRef<PhysicsAnimationSystem | null>(null); // 🚀 新增
+  const animationRef = useRef<PhysicsAnimationSystem | null>(null);
   const animationFrameRef = useRef<number>();
+
+  // 面板显示状态
+  const [panelsVisible, setPanelsVisible] = useState({
+    control: true,
+    status: true,
+    manufacturing: false,
+    help: false
+  });
 
   // 画布尺寸
   const [canvasSize, setCanvasSize] = useState<CanvasSize>(() => {
@@ -77,7 +85,7 @@ export default function ScissorMechanismApp() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [physicsEnabled, setPhysicsEnabled] = useState(false);
 
-  // 🚀 动画状态
+  // 动画状态
   const [animationEnabled, setAnimationEnabled] = useState(false);
   const [animationPreset, setAnimationPreset] = useState<'gentle' | 'dynamic' | 'chaotic'>('gentle');
 
@@ -93,6 +101,8 @@ export default function ScissorMechanismApp() {
     perRow: 8,
   });
 
+  // [保持原有的 useEffect 和处理函数不变...]
+  
   // 画布尺寸变化处理
   useEffect(() => {
     const handleResize = () => {
@@ -115,7 +125,6 @@ export default function ScissorMechanismApp() {
     if (physicsEnabled && physicsRef.current) {
       physicsRef.current.rebuild();
       
-      // 🚀 重建动画系统
       if (animationEnabled && animationRef.current) {
         animationRef.current.stop();
         animationRef.current = new PhysicsAnimationSystem(physicsRef.current);
@@ -128,7 +137,6 @@ export default function ScissorMechanismApp() {
   // 物理模拟开关
   useEffect(() => {
     if (physicsEnabled) {
-      // 启用物理模拟
       physicsRef.current?.destroy();
       physicsRef.current = new FixedPhysicsAdapter(mechanism, {
         gravity: true,
@@ -136,7 +144,6 @@ export default function ScissorMechanismApp() {
         damping: 0.02
       });
 
-      // 🚀 创建动画系统
       if (animationEnabled) {
         animationRef.current?.stop();
         animationRef.current = new PhysicsAnimationSystem(physicsRef.current);
@@ -144,17 +151,14 @@ export default function ScissorMechanismApp() {
         animationRef.current.start();
       }
 
-      // 如果有锚点，设置它
       if (anchor.id) {
         physicsRef.current.setAnchor(anchor.id);
       }
 
-      // 添加初始扰动
       setTimeout(() => {
         physicsRef.current?.addRandomImpulse();
       }, 500);
 
-      // 启动连续更新循环
       const animate = () => {
         if (physicsRef.current) {
           physicsRef.current.updateMechanism();
@@ -164,19 +168,16 @@ export default function ScissorMechanismApp() {
       animate();
 
     } else {
-      // 关闭物理模拟
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
       
-      // 🚀 停止动画
       animationRef.current?.stop();
       animationRef.current = null;
       
       physicsRef.current?.destroy();
       physicsRef.current = null;
       
-      // 恢复几何模式
       mechanism.update(freeCurve.length > 0 ? freeCurve : null);
     }
 
@@ -184,11 +185,10 @@ export default function ScissorMechanismApp() {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
-      animationRef.current?.stop(); // 🚀 清理动画
+      animationRef.current?.stop();
     };
   }, [physicsEnabled, anchor.id, mechanism, freeCurve, animationEnabled, animationPreset]);
 
-  // 🚀 动画开关效果
   useEffect(() => {
     if (physicsEnabled && physicsRef.current) {
       if (animationEnabled) {
@@ -203,29 +203,25 @@ export default function ScissorMechanismApp() {
     }
   }, [animationEnabled, physicsEnabled, animationPreset]);
 
-  // 锚点变化时更新物理
   useEffect(() => {
     if (physicsRef.current) {
       physicsRef.current.setAnchor(anchor.id);
     }
   }, [anchor]);
 
-  // 重置功能
+  // 处理函数
   const handleReset = useCallback(() => {
-    // 清理物理和动画
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
     }
-    animationRef.current?.stop(); // 🚀 停止动画
+    animationRef.current?.stop();
     animationRef.current = null;
     physicsRef.current?.destroy();
     physicsRef.current = null;
 
-    // 重新创建机制
     mechanismRef.current = new ImprovedScissorMechanism();
     const mech = mechanismRef.current;
 
-    // 重置所有状态
     setParams({
       segments: 4,
       linkLength: 60,
@@ -247,9 +243,8 @@ export default function ScissorMechanismApp() {
     setAnchorMode(false);
     setIsDrawing(false);
     setPhysicsEnabled(false);
-    setAnimationEnabled(false); // 🚀 重置动画状态
+    setAnimationEnabled(false);
 
-    // 初始化机制
     if (mech) {
       mech.setCenter(canvasSize.width / 2, canvasSize.height / 2);
       mech.setParams({
@@ -263,7 +258,6 @@ export default function ScissorMechanismApp() {
     }
   }, [canvasSize]);
 
-  // 随机化功能
   const handleRandomize = useCallback(() => {
     const curveTypes: Array<'arc' | 'sine' | 'free'> = ['arc', 'sine', 'free'];
     setParams({
@@ -275,7 +269,6 @@ export default function ScissorMechanismApp() {
     });
   }, []);
 
-  // SVG 导出功能
   const handleExportSVG = useCallback(() => {
     const mech = mechanismRef.current;
     if (!mech) {
@@ -290,14 +283,12 @@ export default function ScissorMechanismApp() {
     downloadSVG(svg);
   }, [mfgParams]);
 
-  // 添加扰动功能
   const handleShake = useCallback(() => {
     if (physicsRef.current) {
       physicsRef.current.addRandomImpulse();
     }
   }, []);
 
-  // 🚀 新增：触发特殊动画
   const handleExplosion = useCallback(() => {
     if (animationRef.current) {
       animationRef.current.triggerExplosion(0.08);
@@ -335,49 +326,141 @@ export default function ScissorMechanismApp() {
         />
       </div>
 
-      {/* 控制面板 */}
-      <ControlPanel
-        params={params}
-        setParams={setParams}
-        showOptions={showOptions}
-        setShowOptions={setShowOptions}
-        anchorMode={anchorMode}
-        setAnchorMode={setAnchorMode}
-        anchor={anchor}
-        setAnchor={setAnchor}
-        onReset={handleReset}
-        onRandomize={handleRandomize}
-        onExportSVG={handleExportSVG}
-        onShake={handleShake}
-        mechanism={mechanism}
-        physicsEnabled={physicsEnabled}
-        setPhysicsEnabled={setPhysicsEnabled}
-        // 🚀 新增动画相关 props
-        animationEnabled={animationEnabled}
-        setAnimationEnabled={setAnimationEnabled}
-        animationPreset={animationPreset}
-        setAnimationPreset={setAnimationPreset}
-        onExplosion={handleExplosion}
-        onWave={handleWave}
-      />
+      {/* 简洁工具栏 */}
+      <div className="absolute top-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-b border-gray-200 z-50">
+        <div className="flex items-center justify-between px-4 py-2">
+          <div className="flex items-center space-x-4">
+            <h1 className="text-lg font-medium text-gray-900">Scissor Mechanism</h1>
+            
+            {/* 快速控制 */}
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleReset}
+                className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors"
+              >
+                Reset
+              </button>
+              <button
+                onClick={handleRandomize}
+                className="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 rounded transition-colors"
+              >
+                Random
+              </button>
+              <button
+                onClick={handleExportSVG}
+                className="px-2 py-1 text-xs bg-green-100 hover:bg-green-200 text-green-700 rounded transition-colors"
+              >
+                Export
+              </button>
+            </div>
+          </div>
 
-      {/* 状态面板 */}
-      <StatusPanel 
-        mechanism={mechanism} 
-        physicsEnabled={physicsEnabled}
-        animationEnabled={animationEnabled} // 🚀 传递动画状态
-      />
+          {/* 面板切换 */}
+          <div className="flex items-center space-x-1">
+            <button
+              onClick={() => setPanelsVisible(p => ({ ...p, control: !p.control }))}
+              className={`px-2 py-1 text-xs rounded transition-all ${
+                panelsVisible.control 
+                  ? 'bg-indigo-100 text-indigo-700' 
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              Controls
+            </button>
+            <button
+              onClick={() => setPanelsVisible(p => ({ ...p, status: !p.status }))}
+              className={`px-2 py-1 text-xs rounded transition-all ${
+                panelsVisible.status 
+                  ? 'bg-emerald-100 text-emerald-700' 
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              Status
+            </button>
+            <button
+              onClick={() => setPanelsVisible(p => ({ ...p, manufacturing: !p.manufacturing }))}
+              className={`px-2 py-1 text-xs rounded transition-all ${
+                panelsVisible.manufacturing 
+                  ? 'bg-purple-100 text-purple-700' 
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              Mfg
+            </button>
+            <button
+              onClick={() => setPanelsVisible(p => ({ ...p, help: !p.help }))}
+              className={`px-2 py-1 text-xs rounded transition-all ${
+                panelsVisible.help 
+                  ? 'bg-amber-100 text-amber-700' 
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              Help
+            </button>
+          </div>
+        </div>
+      </div>
 
-      {/* 制造参数面板 */}
-      <ManufacturingPanel params={mfgParams} setParams={setMfgParams} />
+      {/* 面板容器 */}
+      <div className="absolute inset-0 pt-12 pointer-events-none">
+        {/* 左侧面板区域 */}
+        <div className="absolute left-4 top-4 bottom-4 w-80 max-w-[calc(50vw-2rem)] pointer-events-auto">
+          {panelsVisible.control && (
+            <div className="h-full">
+              <ControlPanel
+                params={params}
+                setParams={setParams}
+                showOptions={showOptions}
+                setShowOptions={setShowOptions}
+                anchorMode={anchorMode}
+                setAnchorMode={setAnchorMode}
+                anchor={anchor}
+                setAnchor={setAnchor}
+                onReset={handleReset}
+                onRandomize={handleRandomize}
+                onExportSVG={handleExportSVG}
+                onShake={handleShake}
+                mechanism={mechanism}
+                physicsEnabled={physicsEnabled}
+                setPhysicsEnabled={setPhysicsEnabled}
+                animationEnabled={animationEnabled}
+                setAnimationEnabled={setAnimationEnabled}
+                animationPreset={animationPreset}
+                setAnimationPreset={setAnimationPreset}
+                onExplosion={handleExplosion}
+                onWave={handleWave}
+              />
+            </div>
+          )}
+        </div>
 
-      {/* 帮助提示 */}
-      <HelpPanel
-        curveType={params.curveType}
-        isDrawing={isDrawing}
-        anchor={anchor}
-        viewState={viewState}
-      />
+        {/* 右侧面板区域 */}
+        <div className="absolute right-4 top-4 w-64 space-y-4 pointer-events-auto">
+          {panelsVisible.status && (
+            <StatusPanel 
+              mechanism={mechanism} 
+              physicsEnabled={physicsEnabled}
+              animationEnabled={animationEnabled}
+            />
+          )}
+          
+          {panelsVisible.manufacturing && (
+            <ManufacturingPanel params={mfgParams} setParams={setMfgParams} />
+          )}
+        </div>
+
+        {/* 帮助面板 - 现在显示在中央 */}
+        {panelsVisible.help && (
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl px-4 pointer-events-auto">
+            <HelpPanel
+              curveType={params.curveType}
+              isDrawing={isDrawing}
+              anchor={anchor}
+              viewState={viewState}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
