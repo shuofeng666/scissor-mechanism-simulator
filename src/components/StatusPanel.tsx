@@ -5,15 +5,30 @@ import { ImprovedScissorMechanism } from '../lib/ScissorMechanism';
 
 interface StatusPanelProps {
   mechanism: ImprovedScissorMechanism;
+  physicsEnabled?: boolean;
 }
 
-export const StatusPanel: React.FC<StatusPanelProps> = ({ mechanism }) => {
+export const StatusPanel: React.FC<StatusPanelProps> = ({ mechanism, physicsEnabled = false }) => {
   const integrity = mechanism.getIntegrity();
 
   return (
     <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-3">
       <div className="space-y-1 text-xs">
         <div className="font-medium text-gray-900">Status</div>
+        
+        {/* 物理状态 */}
+        <div className="flex items-center space-x-1">
+          <span className="text-gray-600">Mode:</span>
+          <span className={`inline-flex items-center space-x-1 ${
+            physicsEnabled ? 'text-blue-600' : 'text-gray-600'
+          }`}>
+            <span className={`w-2 h-2 rounded-full ${
+              physicsEnabled ? 'bg-blue-600' : 'bg-gray-400'
+            }`}></span>
+            <span className="font-mono">{physicsEnabled ? 'Physics' : 'Geometry'}</span>
+          </span>
+        </div>
+        
         <div className="grid grid-cols-2 gap-x-3 gap-y-1">
           <div>
             <span className="text-gray-600">Curve:</span>

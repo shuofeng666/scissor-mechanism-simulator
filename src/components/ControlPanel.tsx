@@ -16,7 +16,9 @@ interface ControlPanelProps {
   onReset: () => void;
   onRandomize: () => void;
   onExportSVG: () => void;
-  mechanism: ImprovedScissorMechanism; // 添加 mechanism 参数
+  mechanism: ImprovedScissorMechanism;
+  physicsEnabled: boolean;
+  setPhysicsEnabled: (enabled: boolean) => void;
 }
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -31,11 +33,34 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   onReset,
   onRandomize,
   onExportSVG,
-  mechanism
+  mechanism,
+  physicsEnabled,
+  setPhysicsEnabled
 }) => {
   return (
     <div className="absolute top-4 left-4 w-80 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-4 space-y-4 max-h-[90vh] overflow-y-auto">
       <h1 className="text-lg font-bold text-gray-900">Scissor Mechanism</h1>
+      
+      {/* 物理模拟开关 */}
+      <div className="space-y-2">
+        <h3 className="text-xs font-medium text-gray-600 uppercase tracking-wide">Physics</h3>
+        <label className="flex items-center space-x-2 text-sm">
+          <input
+            type="checkbox"
+            checked={physicsEnabled}
+            onChange={(e) => setPhysicsEnabled(e.target.checked)}
+            className="w-4 h-4 rounded"
+          />
+          <span className={`${physicsEnabled ? 'text-blue-600 font-medium' : 'text-gray-700'}`}>
+            Enable Physics Simulation
+          </span>
+        </label>
+        {physicsEnabled && (
+          <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+            🎯 Physics mode: Use anchor to pin joints and watch the chain react to gravity!
+          </div>
+        )}
+      </div>
       
       {/* 曲线类型选择 */}
       <div className="space-y-2">
@@ -170,7 +195,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             onClick={() => {
               setAnchor({ id: null, world: null });
               setAnchorMode(false);
-              // 安全检查 - 只有当方法存在时才调用
               if (mechanism && typeof mechanism.setAnchor === 'function') {
                 mechanism.setAnchor(null, null);
               }

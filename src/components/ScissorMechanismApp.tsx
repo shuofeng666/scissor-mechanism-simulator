@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ImprovedScissorMechanism, Point } from '../lib/ScissorMechanism';
 import { exportLinksToSVG, downloadSVG } from '../lib/svgExporter';
+import { SimplePhysicsAdapter } from '../lib/physics/simplePhysics';
 import {
   MechanismParams,
   ShowOptions,
@@ -19,21 +20,19 @@ import { StatusPanel } from './StatusPanel';
 import { ManufacturingPanel } from './ManufacturingPanel';
 import { HelpPanel } from './HelpPanel';
 
-// ★ 新增：Matter.js 物理适配器（不渲染，只负责“算物理→回写机制坐标”）
-import { buildWorldFromMechanism, PhysicsHandle } from '../lib/physics/matterAdapter';
-
 const DEFAULT_CANVAS_SIZE: CanvasSize = { width: 1920, height: 1080 };
 
 export default function ScissorMechanismApp() {
-  // 机制实例（保持与你的原代码一致）
+  // 机制实例
   const mechanismRef = useRef<ImprovedScissorMechanism>();
   if (!mechanismRef.current) {
     mechanismRef.current = new ImprovedScissorMechanism();
   }
   const mechanism = mechanismRef.current;
 
-  // ★ 物理世界句柄
-  const physicsRef = useRef<PhysicsHandle | null>(null);
+  // 物理适配器
+  const physicsRef = useRef<SimplePhysicsAdapter | null>(null);
+  const animationRef = useRef<number>();
 
   // 画布尺寸
   const [canvasSize, setCanvasSize] = useState<CanvasSize>(() => {
@@ -58,7 +57,7 @@ export default function ScissorMechanismApp() {
     showPivots: true,
     showTrail: false,
     showLabels: true,
-    showMfg: true,
+    showMfg: true, // 默认启用彩色制造预览
   });
 
   // 视图状态
@@ -73,6 +72,7 @@ export default function ScissorMechanismApp() {
   const [anchor, setAnchor] = useState<AnchorState>({ id: null, world: null });
   const [anchorMode, setAnchorMode] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [physicsEnabled, setPhysicsEnabled] = useState(false);
 
   // 制造参数
   const [mfgParams, setMfgParams] = useState<ManufacturingParams>({
@@ -112,48 +112,49 @@ export default function ScissorMechanismApp() {
     mech.update(freeCurve.length > 0 ? freeCurve : null);
   }, [params, freeCurve, mechanism]);
 
-  // ★ 关键1：Anchor Mode 开/关时创建/销毁物理世界，并开启帧循环回写坐标
+  // 物理模拟开关
   useEffect(() => {
-    if (!mechanism) return;
-
-    let raf = 0;
-
-    if (anchorMode) {
-      // 清掉旧的
-      physicsRef.current?.destroy?.();
-      physicsRef.current = null;
-
-      // 用当前几何创建物理世界
-      physicsRef.current = buildWorldFromMechanism(mechanism, {
+    if (physicsEnabled) {
+      // 启用物理
+      physicsRef.current?.destroy();
+      physicsRef.current = new SimplePhysicsAdapter(mechanism, {
         gravity: true,
-        worldBounds: { minX: -2000, minY: -2000, maxX: 4000, maxY: 3000 },
-        damping: { linear: 0.05, air: 0.02 }, // 稍大阻尼，更易收敛
+        stiffness: 0.8,
+        damping: 0.05
       });
 
-      // 如果已有选中的锚点，则设为静态
+      // 如果有锚点，设置它
       if (anchor.id) {
         physicsRef.current.setAnchor(anchor.id);
       }
 
-      // 帧循环：从物理世界取坐标回写到机制 → 你的 SVG 自动用新坐标绘制
-      const loop = () => {
-        physicsRef.current?.stepAndWriteBack();
-        raf = requestAnimationFrame(loop);
+      // 启动动画循环
+      const animate = () => {
+        physicsRef.current?.update();
+        animationRef.current = requestAnimationFrame(animate);
       };
-      loop();
+      animate();
 
-      return () => {
-        cancelAnimationFrame(raf);
-      };
     } else {
-      // 关闭物理：销毁并回到纯几何
-      physicsRef.current?.destroy?.();
+      // 关闭物理
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      physicsRef.current?.destroy();
       physicsRef.current = null;
+      
+      // 恢复几何模式
       mechanism.update(freeCurve.length > 0 ? freeCurve : null);
     }
-  }, [anchorMode, anchor?.id, mechanism, freeCurve]);
 
-  // ★ 关键2：当 anchor 变化时，同步到物理世界（把该 joint 设为静态/解除）
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [physicsEnabled, anchor.id, mechanism, freeCurve]);
+
+  // 锚点变化时更新物理
   useEffect(() => {
     if (physicsRef.current) {
       physicsRef.current.setAnchor(anchor.id);
@@ -163,10 +164,13 @@ export default function ScissorMechanismApp() {
   // 重置
   const handleReset = useCallback(() => {
     // 清理物理
-    physicsRef.current?.destroy?.();
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+    }
+    physicsRef.current?.destroy();
     physicsRef.current = null;
 
-    // 重新创建机制实例，与你原代码一致
+    // 重新创建机制实例
     mechanismRef.current = new ImprovedScissorMechanism();
     const mech = mechanismRef.current;
 
@@ -183,13 +187,14 @@ export default function ScissorMechanismApp() {
       showPivots: true,
       showTrail: false,
       showLabels: true,
-      showMfg: true,
+      showMfg: false,
     });
     setViewState({ scale: 1.0, offsetX: 0, offsetY: 0 });
     setFreeCurve([]);
     setAnchor({ id: null, world: null });
     setAnchorMode(false);
     setIsDrawing(false);
+    setPhysicsEnabled(false);
 
     if (mech) {
       mech.setCenter(canvasSize.width / 2, canvasSize.height / 2);
@@ -216,7 +221,7 @@ export default function ScissorMechanismApp() {
     });
   }, []);
 
-  // 导出 SVG（保持你的原逻辑）
+  // 导出 SVG
   const handleExportSVG = useCallback(() => {
     const mech = mechanismRef.current;
     if (!mech) {
@@ -237,7 +242,7 @@ export default function ScissorMechanismApp() {
 
   return (
     <div className="min-h-screen bg-gray-100 relative overflow-hidden">
-      {/* 背景画布（你的 SVG 渲染层） */}
+      {/* 背景画布 */}
       <div className="absolute inset-0">
         <InteractiveCanvas
           mechanism={mechanism}
@@ -256,7 +261,7 @@ export default function ScissorMechanismApp() {
         />
       </div>
 
-      {/* 控制面板（保留你原有交互；Anchor Mode 勾选会触发物理适配器启用） */}
+      {/* 控制面板 */}
       <ControlPanel
         params={params}
         setParams={setParams}
@@ -270,12 +275,14 @@ export default function ScissorMechanismApp() {
         onRandomize={handleRandomize}
         onExportSVG={handleExportSVG}
         mechanism={mechanism}
+        physicsEnabled={physicsEnabled}
+        setPhysicsEnabled={setPhysicsEnabled}
       />
 
       {/* 状态面板 */}
-      <StatusPanel mechanism={mechanism} />
+      <StatusPanel mechanism={mechanism} physicsEnabled={physicsEnabled} />
 
-      {/* 制造参数面板（注意：该组件只需要 params / setParams） */}
+      {/* 制造参数面板 */}
       <ManufacturingPanel params={mfgParams} setParams={setMfgParams} />
 
       {/* 帮助提示 */}
