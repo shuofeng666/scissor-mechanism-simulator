@@ -1,3 +1,17 @@
+// src/lib/physics/ParticleSystem.ts (修复版)
+
+// 🔧 添加缺失的 Particle 接口定义
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  decay: number;
+  color: string;
+  size: number;
+}
+
 export class ParticleSystem {
   private particles: Particle[] = [];
   private maxParticles = 200;
@@ -13,6 +27,11 @@ export class ParticleSystem {
         color: `hsl(${Math.random() * 360}, 70%, 60%)`,
         size: Math.random() * 4 + 2
       });
+    }
+    
+    // 限制粒子数量
+    if (this.particles.length > this.maxParticles) {
+      this.particles = this.particles.slice(-this.maxParticles);
     }
   }
 
@@ -36,5 +55,23 @@ export class ParticleSystem {
       ctx.fill();
       ctx.restore();
     });
+  }
+
+  // 获取当前粒子数量
+  getParticleCount(): number {
+    return this.particles.length;
+  }
+
+  // 清空所有粒子
+  clear() {
+    this.particles = [];
+  }
+
+  // 设置最大粒子数
+  setMaxParticles(max: number) {
+    this.maxParticles = Math.max(1, max);
+    if (this.particles.length > this.maxParticles) {
+      this.particles = this.particles.slice(-this.maxParticles);
+    }
   }
 }
