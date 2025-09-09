@@ -1,3 +1,4 @@
+// src/lib/physics/FixedPhysicsAdapter.ts (优化版 - 更高刷新率)
 'use client';
 
 import Matter from 'matter-js';
@@ -7,6 +8,7 @@ export interface PhysicsOptions {
   gravity?: boolean;
   stiffness?: number;
   damping?: number;
+  targetFPS?: number; // 🚀 新增：目标帧率
 }
 
 export class FixedPhysicsAdapter {
@@ -21,21 +23,32 @@ export class FixedPhysicsAdapter {
   
   private isRunning = false;
   private anchorId: string | null = null;
+  private targetFPS: number;
   
   constructor(mechanism: ImprovedScissorMechanism, options: PhysicsOptions = {}) {
     this.mechanism = mechanism;
+    this.targetFPS = options.targetFPS || 120; // 🚀 默认120FPS
     
     this.engine = Matter.Engine.create();
     this.world = this.engine.world;
     
-    this.world.gravity.y = options.gravity !== false ? 1.0 : 0;
-    this.world.gravity.scale = 0.001;
+    // 🚀 优化重力设置
+    this.world.gravity.y = options.gravity !== false ? 0.8 : 0; // 稍微降低重力
+    this.world.gravity.scale = 0.0008; // 减小重力比例
     
-    this.engine.positionIterations = 12;
-    this.engine.velocityIterations = 10;
-    this.engine.constraintIterations = 8;
+    // 🚀 大幅优化迭代次数以提高性能
+    this.engine.positionIterations = 8;  // 从12降到8
+    this.engine.velocityIterations = 6;  // 从10降到6
+    this.engine.constraintIterations = 4; // 从8降到4
     
-    this.runner = Matter.Runner.create();
+    // 🚀 启用高性能模式
+    this.engine.enableSleeping = true;
+    this.engine.timing.timeScale = 1.0;
+    
+    this.runner = Matter.Runner.create({
+      delta: 1000 / this.targetFPS, // 🚀 设置目标时间步长
+      isFixed: true // 🚀 固定时间步长
+    });
     
     this.buildPhysicsFromMechanism();
     this.start();
@@ -45,12 +58,14 @@ export class FixedPhysicsAdapter {
     this.clearPhysics();
     
     this.mechanism.joints.forEach(joint => {
-      const body = Matter.Bodies.circle(joint.x, joint.y, 6, {
-        frictionAir: 0.02,
-        friction: 0.1,
-        restitution: 0.1,
-        density: 0.002,
-        collisionFilter: { group: -1 }
+      const body = Matter.Bodies.circle(joint.x, joint.y, 5, { // 🚀 稍微减小半径
+        frictionAir: 0.015, // 🚀 减少空气阻力
+        friction: 0.08,     // 🚀 减少摩擦
+        restitution: 0.05,  // 🚀 减少弹性
+        density: 0.0015,    // 🚀 降低密度
+        collisionFilter: { group: -1 },
+        sleepThreshold: 30, // 🚀 更快进入睡眠状态
+        slop: 0.05         // 🚀 允许小幅度重叠以提高性能
       });
       
       this.jointBodies[joint.id] = body;
@@ -73,8 +88,8 @@ export class FixedPhysicsAdapter {
           bodyA,
           bodyB,
           length: linkLength,
-          stiffness: 1.0,
-          damping: 0.01,
+          stiffness: 1.0,        // 🚀 保持高刚度
+          damping: 0.005,        // 🚀 减少阻尼
           render: { visible: false }
         });
         
@@ -92,10 +107,11 @@ export class FixedPhysicsAdapter {
       const link2End = this.jointBodies[pivot.link2.end.id];
       
       if (link1Start && link1End && link2Start && link2End) {
-        const pivotBody = Matter.Bodies.circle(pivot.x, pivot.y, 2, {
+        const pivotBody = Matter.Bodies.circle(pivot.x, pivot.y, 1, { // 🚀 减小枢轴体积
           isStatic: false,
           render: { visible: false },
-          collisionFilter: { group: -1 }
+          collisionFilter: { group: -1 },
+          sleepThreshold: 20
         });
         
         Matter.World.add(this.world, pivotBody);
@@ -110,8 +126,8 @@ export class FixedPhysicsAdapter {
             bodyA: pivotBody,
             bodyB: jointBody,
             length: distance,
-            stiffness: 0.9,
-            damping: 0.05,
+            stiffness: 0.95,      // 🚀 稍微降低刚度
+            damping: 0.03,        // 🚀 减少阻尼
             render: { visible: false }
           });
           
@@ -121,12 +137,17 @@ export class FixedPhysicsAdapter {
       }
     });
     
+    // 🚀 优化地面设置
     const ground = Matter.Bodies.rectangle(
       this.mechanism.centerX,
       this.mechanism.centerY + 300,
       1000,
       60,
-      { isStatic: true }
+      { 
+        isStatic: true,
+        friction: 0.8,
+        restitution: 0.3
+      }
     );
     Matter.World.add(this.world, ground);
   }
@@ -177,8 +198,8 @@ export class FixedPhysicsAdapter {
     Object.values(this.jointBodies).forEach(body => {
       if (!body.isStatic) {
         const impulse = {
-          x: (Math.random() - 0.5) * 0.03,
-          y: (Math.random() - 0.5) * 0.03
+          x: (Math.random() - 0.5) * 0.02, // 🚀 减小冲量
+          y: (Math.random() - 0.5) * 0.02
         };
         Matter.Body.applyForce(body, body.position, impulse);
       }
@@ -208,7 +229,18 @@ export class FixedPhysicsAdapter {
   }
   
   setGravity(enabled: boolean) {
-    this.world.gravity.y = enabled ? 1.0 : 0;
+    this.world.gravity.y = enabled ? 0.8 : 0; // 🚀 优化重力值
+  }
+  
+  // 🚀 新增：动态调整FPS
+  setTargetFPS(fps: number) {
+    this.targetFPS = Math.max(30, Math.min(144, fps));
+    this.runner.delta = 1000 / this.targetFPS;
+  }
+  
+  // 🚀 新增：获取当前FPS
+  getCurrentFPS(): number {
+    return Math.round(1000 / this.runner.delta);
   }
   
   destroy() {
