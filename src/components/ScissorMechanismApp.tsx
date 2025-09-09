@@ -327,7 +327,7 @@ export default function ScissorMechanismApp() {
       </div>
 
       {/* 简洁工具栏 */}
-      <div className="absolute top-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-b border-gray-200 z-50">
+<div className="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-gray-200 z-50">
         <div className="flex items-center justify-between px-4 py-2">
           <div className="flex items-center space-x-4">
             <h1 className="text-lg font-medium text-gray-900">Scissor Mechanism</h1>

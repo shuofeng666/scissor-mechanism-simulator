@@ -40,7 +40,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
   const [lastMouse, setLastMouse] = useState({ x: 0, y: 0 });
   const [drawingPoints, setDrawingPoints] = useState<Point[]>([]);
 
-  // 🎨 彩虹渐变色系，都带半透明效果
+  // 彩虹渐变色系，都带半透明效果
   const linkColors = [
     { fill: 'rgba(239, 68, 68, 0.15)', stroke: '#ef4444' },   // 红色
     { fill: 'rgba(251, 146, 60, 0.15)', stroke: '#f97316' }, // 橙色
@@ -315,7 +315,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
             );
           })}
 
-          {/* 🎨 制造预览 - 彩色杆件 */}
+          {/* 制造预览 - 修复版 */}
           {showOptions.showMfg && (
             <g>
               {mechanism.links.map((link, idx) => {
@@ -347,7 +347,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                   { x: centerX - halfLength * cos + halfWidth * sin, y: centerY - halfLength * sin - halfWidth * cos }
                 ];
                 
-                // 🌈 选择颜色 - 循环使用配色数组
+                // 选择颜色 - 循环使用配色数组
                 const colorScheme = linkColors[idx % linkColors.length];
                 
                 return (
@@ -380,18 +380,10 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                       strokeWidth="1"
                     />
                     
-                    {/* 螺栓孔 - 两端和中间共3个 */}
+                    {/* 修复：正确的螺栓孔位置 - 只在关节点位置打孔 */}
                     <circle 
                       cx={startScreen.x} 
                       cy={startScreen.y} 
-                      r={holeRadiusPx}
-                      fill="white"
-                      stroke={colorScheme.stroke}
-                      strokeWidth="1"
-                    />
-                    <circle 
-                      cx={centerX} 
-                      cy={centerY} 
                       r={holeRadiusPx}
                       fill="white"
                       stroke={colorScheme.stroke}
@@ -405,6 +397,21 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                       stroke={colorScheme.stroke}
                       strokeWidth="1"
                     />
+                    
+                    {/* 修复：如果这个连杆有支点，在支点位置也打孔 */}
+                    {link.pivot && (() => {
+                      const pivotScreen = modelToScreen(link.pivot.x - mechanism.centerX, link.pivot.y - mechanism.centerY);
+                      return (
+                        <circle 
+                          cx={pivotScreen.x} 
+                          cy={pivotScreen.y} 
+                          r={holeRadiusPx}
+                          fill="white"
+                          stroke={colorScheme.stroke}
+                          strokeWidth="1"
+                        />
+                      );
+                    })()}
                     
                     {/* 中心线（可选，帮助对准） */}
                     <line
