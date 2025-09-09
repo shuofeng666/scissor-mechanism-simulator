@@ -1,4 +1,4 @@
-// src/lib/PhysicsAnimation.ts
+// src/lib/PhysicsAnimation.ts (修复类型错误版)
 'use client';
 
 import Matter from 'matter-js';
@@ -78,11 +78,27 @@ export class PhysicsAnimationSystem {
   }
 
   updateConfig(newConfig: Partial<PhysicsAnimationConfig>) {
-    this.config = {
-      gravityWave: { ...this.config.gravityWave, ...newConfig.gravityWave },
-      periodicShake: { ...this.config.periodicShake, ...newConfig.periodicShake },
-      anchorAnimation: { ...this.config.anchorAnimation, ...newConfig.anchorAnimation }
-    };
+    // 修复：安全地合并配置，确保类型正确
+    if (newConfig.gravityWave) {
+      this.config.gravityWave = {
+        ...this.config.gravityWave!,
+        ...newConfig.gravityWave
+      };
+    }
+    
+    if (newConfig.periodicShake) {
+      this.config.periodicShake = {
+        ...this.config.periodicShake!,
+        ...newConfig.periodicShake
+      };
+    }
+    
+    if (newConfig.anchorAnimation) {
+      this.config.anchorAnimation = {
+        ...this.config.anchorAnimation!,
+        ...newConfig.anchorAnimation
+      };
+    }
   }
 
   private animate = () => {
@@ -218,7 +234,7 @@ export class PhysicsAnimationSystem {
         intensity: 0.04
       }
     }
-  };
+  } as const;
 
   applyPreset(presetName: keyof typeof PhysicsAnimationSystem.presets) {
     const preset = PhysicsAnimationSystem.presets[presetName];
