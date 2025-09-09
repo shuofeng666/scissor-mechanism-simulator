@@ -40,6 +40,18 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
   const [lastMouse, setLastMouse] = useState({ x: 0, y: 0 });
   const [drawingPoints, setDrawingPoints] = useState<Point[]>([]);
 
+  // 颜色配置 - 彩虹渐变色系，都带半透明效果
+  const linkColors = [
+    { fill: 'rgba(239, 68, 68, 0.15)', stroke: '#ef4444' },   // 红色
+    { fill: 'rgba(251, 146, 60, 0.15)', stroke: '#f97316' }, // 橙色
+    { fill: 'rgba(250, 204, 21, 0.15)', stroke: '#eab308' }, // 黄色
+    { fill: 'rgba(34, 197, 94, 0.15)', stroke: '#22c55e' },  // 绿色
+    { fill: 'rgba(59, 130, 246, 0.15)', stroke: '#3b82f6' }, // 蓝色
+    { fill: 'rgba(147, 51, 234, 0.15)', stroke: '#9333ea' }, // 紫色
+    { fill: 'rgba(236, 72, 153, 0.15)', stroke: '#ec4899' }, // 粉色
+    { fill: 'rgba(20, 184, 166, 0.15)', stroke: '#14b8a6' }, // 青色
+  ];
+
   // 修正的坐标转换函数 - 这些函数现在会正确处理缩放
   const modelToScreen = useCallback((mx: number, my: number): Point => {
     // 将模型坐标转换为屏幕坐标，考虑缩放和偏移
@@ -121,14 +133,8 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
     if (anchorMode) {
       const hit = pickNodeAt(x, y);
       if (hit) {
-        // 将屏幕坐标转换为世界坐标
-/*         const worldPos = {
-          x: hit.world.x,
-          y: hit.world.y
-        }; */
-
-         // ✅ 改为用模型坐标（非常关键）：
-    const worldPos = screenToModel(x, y);
+        // ✅ 改为用模型坐标（非常关键）：
+        const worldPos = screenToModel(x, y);
         
         // 设置UI状态
         setAnchor({ id: hit.id, world: worldPos });
@@ -318,7 +324,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
             );
           })}
 
-          {/* 制造预览 */}
+          {/* 制造预览 - 彩色杆件 */}
           {showOptions.showMfg && (
             <g>
               {mechanism.links.map((link, idx) => {
@@ -328,10 +334,10 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                 
                 // 计算连杆的胶囊形状
                 const linkLength = Math.hypot(endScreen.x - startScreen.x, endScreen.y - startScreen.y);
-                const linkWidthPx = mfgParams.linkWidth * viewState.scale; // 制造参数中的宽度转换为像素
-                const holeRadiusPx = (mfgParams.holeDia / 2) * viewState.scale; // 制造参数中的孔径转换为像素
+                const linkWidthPx = mfgParams.linkWidth * viewState.scale;
+                const holeRadiusPx = (mfgParams.holeDia / 2) * viewState.scale;
                 
-                if (linkLength < 1) return null; // 避免零长度连杆
+                if (linkLength < 1) return null;
                 
                 const angle = Math.atan2(endScreen.y - startScreen.y, endScreen.x - startScreen.x);
                 const centerX = (startScreen.x + endScreen.x) / 2;
@@ -352,13 +358,16 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                   { x: centerX - halfLength * cos + halfWidth * sin, y: centerY - halfLength * sin - halfWidth * cos }
                 ];
                 
+                // 选择颜色 - 循环使用配色数组
+                const colorScheme = linkColors[idx % linkColors.length];
+                
                 return (
                   <g key={`mfg-${idx}`}>
                     {/* 主体矩形 */}
                     <path
                       d={`M ${corners[0].x} ${corners[0].y} L ${corners[1].x} ${corners[1].y} L ${corners[2].x} ${corners[2].y} L ${corners[3].x} ${corners[3].y} Z`}
-                      fill="rgba(239, 68, 68, 0.15)"
-                      stroke="#ef4444"
+                      fill={colorScheme.fill}
+                      stroke={colorScheme.stroke}
                       strokeWidth="1"
                     />
                     
@@ -367,8 +376,8 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                       cx={startScreen.x} 
                       cy={startScreen.y} 
                       r={halfWidth}
-                      fill="rgba(239, 68, 68, 0.15)"
-                      stroke="#ef4444"
+                      fill={colorScheme.fill}
+                      stroke={colorScheme.stroke}
                       strokeWidth="1"
                     />
                     
@@ -377,8 +386,8 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                       cx={endScreen.x} 
                       cy={endScreen.y} 
                       r={halfWidth}
-                      fill="rgba(239, 68, 68, 0.15)"
-                      stroke="#ef4444"
+                      fill={colorScheme.fill}
+                      stroke={colorScheme.stroke}
                       strokeWidth="1"
                     />
                     
@@ -388,7 +397,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                       cy={startScreen.y} 
                       r={holeRadiusPx}
                       fill="white"
-                      stroke="#ef4444"
+                      stroke={colorScheme.stroke}
                       strokeWidth="1"
                     />
                     <circle 
@@ -396,7 +405,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                       cy={centerY} 
                       r={holeRadiusPx}
                       fill="white"
-                      stroke="#ef4444"
+                      stroke={colorScheme.stroke}
                       strokeWidth="1"
                     />
                     <circle 
@@ -404,7 +413,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                       cy={endScreen.y} 
                       r={holeRadiusPx}
                       fill="white"
-                      stroke="#ef4444"
+                      stroke={colorScheme.stroke}
                       strokeWidth="1"
                     />
                     
@@ -414,7 +423,7 @@ export const InteractiveCanvas: React.FC<InteractiveCanvasProps> = ({
                       y1={startScreen.y}
                       x2={endScreen.x}
                       y2={endScreen.y}
-                      stroke="#ef4444"
+                      stroke={colorScheme.stroke}
                       strokeWidth="0.5"
                       strokeDasharray="2,2"
                       opacity="0.5"
