@@ -1,9 +1,11 @@
+// src/components/ScissorMechanismApp.tsx (增强版)
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ImprovedScissorMechanism, Point } from '../lib/ScissorMechanism';
 import { exportLinksToSVG, downloadSVG } from '../lib/svgExporter';
 import { FixedPhysicsAdapter } from '../lib/physics/FixedPhysicsAdapter';
+import { AnimationSystem } from '../lib/AnimationSystem';
 import {
   MechanismParams,
   ShowOptions,
@@ -28,6 +30,13 @@ export default function ScissorMechanismApp() {
     mechanismRef.current = new ImprovedScissorMechanism();
   }
   const mechanism = mechanismRef.current;
+
+  // 🎬 动画系统
+  const animationSystemRef = useRef<AnimationSystem>();
+  if (!animationSystemRef.current) {
+    animationSystemRef.current = new AnimationSystem();
+  }
+  const animationSystem = animationSystemRef.current;
 
   // 物理适配器
   const physicsRef = useRef<FixedPhysicsAdapter | null>(null);
@@ -57,7 +66,7 @@ export default function ScissorMechanismApp() {
     showPivots: true,
     showTrail: false,
     showLabels: true,
-    showMfg: true, // 默认显示彩色制造预览
+    showMfg: true,
   });
 
   // 视图状态
@@ -86,6 +95,10 @@ export default function ScissorMechanismApp() {
     perRow: 8,
   });
 
+  // 🎨 增强的性能监控状态
+  const [fps, setFPS] = useState(60);
+  const [smoothParams, setSmoothParams] = useState(params);
+
   // 画布尺寸变化处理
   useEffect(() => {
     const handleResize = () => {
@@ -100,16 +113,70 @@ export default function ScissorMechanismApp() {
     return () => window.removeEventListener('resize', handleResize);
   }, [mechanism]);
 
-  // 机构参数变化时更新几何
+  // 🎬 平滑参数更新处理
   useEffect(() => {
-    mechanism.setParams(params);
-    mechanism.update(freeCurve.length > 0 ? freeCurve : null);
-    
-    // 如果物理模拟启用，重建物理世界
-    if (physicsEnabled && physicsRef.current) {
-      physicsRef.current.rebuild();
+    const updateMechanism = () => {
+      // 使用平滑后的参数更新机制
+      mechanism.setParams(smoothParams);
+      mechanism.update(freeCurve.length > 0 ? freeCurve : null);
+      
+      // 如果物理模拟启用，重建物理世界
+      if (physicsEnabled && physicsRef.current) {
+        physicsRef.current.rebuild();
+      }
+    };
+
+    // 使用 requestAnimationFrame 确保更新在下一帧进行
+    const frame = requestAnimationFrame(updateMechanism);
+    return () => cancelAnimationFrame(frame);
+  }, [smoothParams, freeCurve, physicsEnabled, mechanism]);
+
+  // 🎬 参数变化的平滑处理
+  useEffect(() => {
+    // 检查是否有显著变化
+    const hasSignificantChange = Object.keys(params).some(key => {
+      const k = key as keyof MechanismParams;
+      return Math.abs((params[k] as number) - (smoothParams[k] as number)) > 0.01;
+    });
+
+    if (hasSignificantChange) {
+      // 如果动画系统正在运行，直接应用参数
+      if (animationSystem.isRunning()) {
+        setSmoothParams(params);
+      } else {
+        // 否则使用平滑过渡
+        const smoothTransition = () => {
+          setSmoothParams(prev => {
+            const newParams = { ...prev };
+            let hasChange = false;
+
+            Object.keys(params).forEach(key => {
+              const k = key as keyof MechanismParams;
+              const current = prev[k] as number;
+              const target = params[k] as number;
+              const diff = target - current;
+
+              if (Math.abs(diff) > 0.01) {
+                // 平滑插值，每帧移动 10% 的距离
+                (newParams[k] as number) = current + diff * 0.1;
+                hasChange = true;
+              } else {
+                (newParams[k] as number) = target;
+              }
+            });
+
+            if (hasChange) {
+              requestAnimationFrame(smoothTransition);
+            }
+
+            return newParams;
+          });
+        };
+
+        smoothTransition();
+      }
     }
-  }, [params, freeCurve, physicsEnabled, mechanism]);
+  }, [params, animationSystem]);
 
   // 物理模拟开关
   useEffect(() => {
@@ -133,8 +200,21 @@ export default function ScissorMechanismApp() {
       }, 500);
 
       // 启动连续更新循环
+      let frameCount = 0;
+      let lastTime = performance.now();
+      
       const animate = () => {
         if (physicsRef.current) {
+          const now = performance.now();
+          frameCount++;
+          
+          // 每60帧计算一次FPS
+          if (frameCount % 60 === 0) {
+            const newFPS = Math.round(1000 / (now - lastTime) * 60);
+            setFPS(newFPS);
+          }
+          lastTime = now;
+
           physicsRef.current.updateMechanism();
           animationRef.current = requestAnimationFrame(animate);
         }
@@ -167,8 +247,22 @@ export default function ScissorMechanismApp() {
     }
   }, [anchor]);
 
+  // 🎬 组件卸载时清理动画
+  useEffect(() => {
+    return () => {
+      animationSystem.stop();
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      physicsRef.current?.destroy();
+    };
+  }, [animationSystem]);
+
   // 重置功能
   const handleReset = useCallback(() => {
+    // 🎬 停止动画
+    animationSystem.stop();
+
     // 清理物理
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
@@ -181,13 +275,16 @@ export default function ScissorMechanismApp() {
     const mech = mechanismRef.current;
 
     // 重置所有状态
-    setParams({
+    const defaultParams = {
       segments: 4,
       linkLength: 60,
       curvature: 1.0,
       curveLength: 300,
-      curveType: 'arc',
-    });
+      curveType: 'arc' as const,
+    };
+
+    setParams(defaultParams);
+    setSmoothParams(defaultParams);
     setShowOptions({
       showCurve: true,
       showJoints: true,
@@ -206,28 +303,54 @@ export default function ScissorMechanismApp() {
     // 初始化机制
     if (mech) {
       mech.setCenter(canvasSize.width / 2, canvasSize.height / 2);
-      mech.setParams({
-        segments: 4,
-        linkLength: 60,
-        curvature: 1.0,
-        curveLength: 300,
-        curveType: 'arc',
-      });
+      mech.setParams(defaultParams);
       mech.update();
     }
-  }, [canvasSize]);
+  }, [canvasSize, animationSystem]);
 
-  // 随机化功能
+  // 随机化功能 - 增加平滑过渡
   const handleRandomize = useCallback(() => {
     const curveTypes: Array<'arc' | 'sine' | 'free'> = ['arc', 'sine', 'free'];
-    setParams({
+    const newParams = {
       segments: Math.floor(2 + Math.random() * 10),
       linkLength: Math.floor(40 + Math.random() * 80),
       curvature: parseFloat((0.5 + Math.random() * 2.0).toFixed(1)),
       curveLength: Math.floor(200 + Math.random() * 250),
       curveType: curveTypes[Math.floor(Math.random() * curveTypes.length)],
-    });
-  }, []);
+    };
+
+    // 🎬 如果动画系统运行中，直接设置；否则平滑过渡
+    if (animationSystem.isRunning()) {
+      setParams(newParams);
+    } else {
+      // 平滑过渡到新参数
+      const startParams = { ...params };
+      const startTime = performance.now();
+      const duration = 1000; // 1秒过渡
+
+      const animate = () => {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = progress * progress * (3 - 2 * progress); // smoothstep
+
+        const interpolatedParams = {
+          segments: Math.round(startParams.segments + (newParams.segments - startParams.segments) * eased),
+          linkLength: Math.round(startParams.linkLength + (newParams.linkLength - startParams.linkLength) * eased),
+          curvature: parseFloat((startParams.curvature + (newParams.curvature - startParams.curvature) * eased).toFixed(1)),
+          curveLength: Math.round(startParams.curveLength + (newParams.curveLength - startParams.curveLength) * eased),
+          curveType: progress > 0.5 ? newParams.curveType : startParams.curveType,
+        };
+
+        setParams(interpolatedParams);
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        }
+      };
+
+      animate();
+    }
+  }, [params, animationSystem]);
 
   // SVG 导出功能
   const handleExportSVG = useCallback(() => {
@@ -244,12 +367,42 @@ export default function ScissorMechanismApp() {
     downloadSVG(svg);
   }, [mfgParams]);
 
-  // 添加扰动功能
+  // 添加扰动功能 - 增强版
   const handleShake = useCallback(() => {
     if (physicsRef.current) {
-      physicsRef.current.addRandomImpulse();
+      // 🎬 更强烈的扰动效果
+      for (let i = 0; i < 3; i++) {
+        setTimeout(() => {
+          physicsRef.current?.addRandomImpulse();
+        }, i * 100);
+      }
+    } else {
+      // 🎬 几何模式下的视觉摇晃
+      const originalOffset = { ...viewState };
+      const shakeAnimation = () => {
+        const time = Date.now() * 0.05;
+        const shakeX = Math.sin(time) * 5;
+        const shakeY = Math.cos(time * 1.3) * 3;
+        
+        setViewState(prev => ({
+          ...prev,
+          offsetX: originalOffset.offsetX + shakeX,
+          offsetY: originalOffset.offsetY + shakeY
+        }));
+      };
+
+      let shakeCount = 0;
+      const maxShakes = 30;
+      const shakeInterval = setInterval(() => {
+        shakeAnimation();
+        shakeCount++;
+        if (shakeCount >= maxShakes) {
+          clearInterval(shakeInterval);
+          setViewState(originalOffset);
+        }
+      }, 16);
     }
-  }, []);
+  }, [physicsRef, viewState]);
 
   if (!mechanism) {
     return <div>Loading...</div>;
@@ -276,7 +429,7 @@ export default function ScissorMechanismApp() {
         />
       </div>
 
-      {/* 控制面板 */}
+      {/* 🎬 增强的控制面板 */}
       <ControlPanel
         params={params}
         setParams={setParams}
@@ -293,10 +446,18 @@ export default function ScissorMechanismApp() {
         mechanism={mechanism}
         physicsEnabled={physicsEnabled}
         setPhysicsEnabled={setPhysicsEnabled}
+        viewState={viewState}
+        setViewState={setViewState}
+        animationSystem={animationSystem}
       />
 
-      {/* 状态面板 */}
-      <StatusPanel mechanism={mechanism} physicsEnabled={physicsEnabled} />
+      {/* 状态面板 - 增加FPS显示 */}
+      <StatusPanel 
+        mechanism={mechanism} 
+        physicsEnabled={physicsEnabled} 
+        fps={fps}
+        isAnimating={animationSystem.isRunning()}
+      />
 
       {/* 制造参数面板 */}
       <ManufacturingPanel params={mfgParams} setParams={setMfgParams} />
@@ -308,6 +469,18 @@ export default function ScissorMechanismApp() {
         anchor={anchor}
         viewState={viewState}
       />
+
+      {/* 🎬 动画状态指示器 */}
+      {animationSystem.isRunning() && (
+        <div className="absolute top-1/2 right-4 transform -translate-y-1/2">
+          <div className="bg-purple-500 text-white px-3 py-2 rounded-full shadow-lg animate-pulse">
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-white rounded-full animate-bounce"></div>
+              <span className="text-sm font-medium">Animating</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
