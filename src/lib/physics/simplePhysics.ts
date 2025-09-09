@@ -51,9 +51,10 @@ export class SimplePhysicsAdapter {
     // 创建关节点作为刚体
     joints.forEach(joint => {
       const body = Matter.Bodies.circle(joint.x, joint.y, 8, {
-        frictionAir: options.damping || 0.02,
-        friction: 0.1,
-        restitution: 0.3,
+        frictionAir: options.damping || 0.01, // 减少空气阻力
+        friction: 0.05, // 减少摩擦
+        restitution: 0.1, // 减少弹性，更稳定
+        density: 0.001, // 降低密度
         collisionFilter: { group: -1 } // 内部不碰撞
       });
       

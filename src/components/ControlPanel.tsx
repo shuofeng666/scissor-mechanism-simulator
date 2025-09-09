@@ -56,8 +56,19 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           </span>
         </label>
         {physicsEnabled && (
-          <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
-            🎯 Physics mode: Use anchor to pin joints and watch the chain react to gravity!
+          <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded space-y-1">
+            <div>🎯 Physics mode: Use anchor to pin joints and watch the chain react to gravity!</div>
+            <button
+              onClick={() => {
+                // 添加随机扰动
+                if (typeof (window as any).physicsAdapter?.addRandomImpulse === 'function') {
+                  (window as any).physicsAdapter.addRandomImpulse();
+                }
+              }}
+              className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded"
+            >
+              🌊 Shake Chain
+            </button>
           </div>
         )}
       </div>
